@@ -1,0 +1,28 @@
+﻿<Page x:Class="MusicNotesEditor.Views.MainMenuPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:MusicNotesEditor.Views"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="MainMenuPage">
+
+    <Grid>
+        <TextBlock Name="title"
+            Text="ORPHEUS"
+            FontSize="72"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"/>
+        
+        <Button 
+            Name="goToMusicEditorButton"
+            Click="GoToMusicEditorPage" 
+            VerticalAlignment="Center"
+            Width="200"
+            Height="40">
+            Go to Music Editor
+        </Button>
+    
+    </Grid>
+</Page>

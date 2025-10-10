@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using MusicNotesEditor.Views;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -9,7 +10,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace MusicNotesEditor.Views
+namespace MusicNotesEditor
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -20,6 +21,7 @@ namespace MusicNotesEditor.Views
         {
             InitializeComponent();
             this.WindowState = WindowState.Maximized;
+            MainFrame.Navigate(new MainMenuPage());
         }
     }
 }
