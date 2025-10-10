@@ -19,6 +19,7 @@ namespace MusicNotesEditor.Views
         public MainWindow()
         {
             InitializeComponent();
+            this.WindowState = WindowState.Maximized;
         }
     }
 }
