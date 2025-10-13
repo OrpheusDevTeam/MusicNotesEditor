@@ -1,18 +1,7 @@
 ﻿using MusicNotesEditor.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace MusicNotesEditor.Views
 {
@@ -24,9 +13,44 @@ namespace MusicNotesEditor.Views
         public MusicEditorPage()
         {
             InitializeComponent();
+
             var viewModel = new MusicEditorViewModel();
             DataContext = viewModel;
             viewModel.LoadTestData();
+
+            mainGrid.SizeChanged += MainGrid_SizeChanged;
+            noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
         }
+
+        private void MainGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            double containerWidth = mainGrid.ActualWidth;
+
+            noteViewer.Width = containerWidth * 0.5f;
+
+            noteViewer.Height = noteViewer.Width * 1.414;
+        }
+
+        private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
+        {
+
+            Console.WriteLine($"Selected element: {noteViewer.SelectedElement}");
+
+            Console.WriteLine("\nAll elements\n:");
+
+            var staves = noteViewer.ScoreSource.Staves;
+
+            for (int i=0; i < staves.Count; i++)
+            {
+                var elements = staves[i].Elements;
+                for (int j = 0; j < elements.Count; j++)
+                {
+                    Console.WriteLine($"\tStave: {i + 1} Element: {j+1}. {elements[j]}");
+                }
+            }
+
+            Console.WriteLine("\n\n");
+        }
+
     }
 }
