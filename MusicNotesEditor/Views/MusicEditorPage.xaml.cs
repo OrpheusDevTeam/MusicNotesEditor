@@ -64,7 +64,6 @@ namespace MusicNotesEditor.Views
 
                 var keyBinding = new KeyBinding(
                     new RelayCommand(() => {
-                        Console.WriteLine($"\nShortkey pressed. Current: {viewModel.CurrentNote}");
                         btn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                         }
                     ),
@@ -125,9 +124,8 @@ namespace MusicNotesEditor.Views
                 RhythmicDuration buttonDuration = (RhythmicDuration)noteButton.Tag;
 
                 noteButton.IsChecked = buttonDuration == viewModel.CurrentNote;
-                Console.WriteLine($"\nDuration: {buttonDuration} Note:{note} IsChecked: {noteButton.IsChecked}");
             }
-            Console.WriteLine($"\nButton pressed. Current: {viewModel.CurrentNote}");
+            
         }
 
     }

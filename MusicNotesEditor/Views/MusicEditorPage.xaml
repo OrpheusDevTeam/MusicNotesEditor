@@ -91,9 +91,9 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center" 
                         >
-                <Button Content=" Play " Margin="5" MinHeight="24"/>
-                <Button Content=" Parts " Margin="5" MinHeight="24"/>
-                <Button Content=" Settings " Margin="5" MinHeight="24"/>
+                <Button Content="  Play  " Margin="4" MinHeight="24"/>
+                <Button Content="  Parts  " Margin="4" MinHeight="24"/>
+                <Button Content="  Settings  " Margin="4" MinHeight="24"/>
             </StackPanel>
         </Grid>
 
