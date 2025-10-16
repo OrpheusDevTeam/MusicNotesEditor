@@ -39,24 +39,38 @@ namespace MusicNotesEditor.Views
                     {
                         Inlines =
                         {
-                            new Run(note.noteName) { FontWeight = FontWeights.Bold },
-                            new Run($"\n{note.description}")
+                            new Run(note.NoteName) { FontWeight = FontWeights.Bold },
+                            new Run($"\n{note.Description}")
                         }
                     }
                 };
 
                 var btn = new ToggleButton
                 {
-                    Content = note.smuflChar,
+                    Content = note.SmuflChar,
                     ToolTip = tooltip,
                     Style = NoteToolbar.Resources["ToolBarButtonStyle"] as Style,
-                    Tag = note.duration,
+                    Tag = note.Duration,
                     Margin = new Thickness(2),
                 };
 
-                btn.Click += (s, e) => ToggleNote(note.duration);
+                btn.Click += (s, e) => ToggleNote(note.Duration);
+
+                var gesture = note.Shortcut;
+                var command = new RoutedCommand();
+                command.InputGestures.Add(gesture);
 
                 NoteToolbar.Items.Add(btn);
+
+                var keyBinding = new KeyBinding(
+                    new RelayCommand(() => {
+                        Console.WriteLine($"\nShortkey pressed. Current: {viewModel.CurrentNote}");
+                        btn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        }
+                    ),
+                    note.Shortcut);
+
+                this.InputBindings.Add(keyBinding);
             }
         }
 
@@ -106,17 +120,14 @@ namespace MusicNotesEditor.Views
 
             foreach (ToggleButton noteButton in notesButtons)
             {
-                if (noteButton == null || noteButton is not ToggleButton)
+                if (noteButton == null)
                     continue;
                 RhythmicDuration buttonDuration = (RhythmicDuration)noteButton.Tag;
 
-                if (buttonDuration != note)
-                {
-                    noteButton.IsChecked = false;
-                    noteButton.IsChecked = false;
-                }
+                noteButton.IsChecked = buttonDuration == viewModel.CurrentNote;
+                Console.WriteLine($"\nDuration: {buttonDuration} Note:{note} IsChecked: {noteButton.IsChecked}");
             }
-
+            Console.WriteLine($"\nButton pressed. Current: {viewModel.CurrentNote}");
         }
 
     }
