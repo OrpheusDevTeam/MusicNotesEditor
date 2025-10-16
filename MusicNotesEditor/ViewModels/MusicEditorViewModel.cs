@@ -3,12 +3,11 @@ using Manufaktura.Controls.Desktop.Audio;
 using Manufaktura.Controls.Model;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
-using static System.Formats.Asn1.AsnWriter;
-
 namespace MusicNotesEditor.ViewModels
 {
     class MusicEditorViewModel : ViewModel
     {
+        public RhythmicDuration? CurrentNote = null;
         private ScorePlayer player;
         private Score data;
         public Score Data

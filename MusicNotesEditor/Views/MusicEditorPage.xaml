@@ -26,7 +26,8 @@
             <ToolBarTray Grid.Column="0"
                          VerticalAlignment="Center" 
                          Background="Transparent">
-                <ToolBar Background="Transparent" 
+                <ToolBar x:Name="NoteToolbar"
+                    Background="Transparent" 
                     BorderThickness="0"
                     FontFamily="{StaticResource Polihymnia}"
                     FontSize="24"
@@ -75,16 +76,6 @@
                         </Style>
                     </ToolBar.Resources>
                     
-                    
-                    
-                    <ToggleButton Content="u" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="t" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="s" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="e" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="q" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="h" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="w" Style="{StaticResource ToolBarButtonStyle}"/>
-
                 </ToolBar>
             </ToolBarTray>
 
