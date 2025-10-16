@@ -16,8 +16,7 @@
 
   <ItemGroup>
     <Folder Include="Converters\" />
-    <Folder Include="Models\" />
-    <Folder Include="Assets\" />
+	<Resource Include="Assets\Polihymnia.ttf" />
   </ItemGroup>
 
 </Project>
