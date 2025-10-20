@@ -17,10 +17,12 @@ namespace MusicNotesEditor.Views
     /// </summary>
     public partial class MusicEditorPage : Page
     {
+        const int SNAPPING_THRESHOLD = 5;
+
         private readonly MusicEditorViewModel viewModel = new MusicEditorViewModel();
         private readonly Canvas mainCanvas;
 
-        TextBlock noteCursor;
+        TextBlock noteIndicator;
         public MusicEditorPage()
         {
             InitializeComponent();
@@ -37,7 +39,7 @@ namespace MusicNotesEditor.Views
             noteViewer.MouseLeave += Canvas_MouseLeave;
             noteViewer.MouseMove += Canvas_MouseMove;
 
-            noteCursor = new TextBlock
+            noteIndicator = new TextBlock
             {
                 FontSize = 26,
                 Foreground = Brushes.Blue,
@@ -156,24 +158,62 @@ namespace MusicNotesEditor.Views
 
         private void Canvas_MouseEnter(object sender, MouseEventArgs e)
         {
-            noteCursor.Visibility = Visibility.Visible;
-            mainCanvas.Children.Add(noteCursor);
+            noteIndicator.Visibility = Visibility.Visible;
+            mainCanvas.Children.Add(noteIndicator);
 
-            noteCursor.Text = NoteDuration.SmuflCharFromDuration(viewModel.CurrentNote);
+            noteIndicator.Text = NoteDuration.SmuflCharFromDuration(viewModel.CurrentNote);
         }
 
         private void Canvas_MouseLeave(object sender, MouseEventArgs e)
         {
-            noteCursor.Visibility = Visibility.Collapsed;
-            mainCanvas.Children.Remove(noteCursor);
+            noteIndicator.Visibility = Visibility.Collapsed;
+            mainCanvas.Children.Remove(noteIndicator);
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
             // Update letter position to follow the mouse
             var pos = e.GetPosition(mainCanvas);
-            Canvas.SetLeft(noteCursor, pos.X - noteCursor.ActualWidth/2);
-            Canvas.SetTop(noteCursor, pos.Y - noteCursor.ActualHeight/2);
+            Canvas.SetLeft(noteIndicator, pos.X - noteIndicator.ActualWidth / 2);
+            
+            var staffLinesPosition = GetStaffLinesPositions(viewModel.Data);
+            
+            double closest = staffLinesPosition.OrderBy(v => Math.Abs(v - pos.Y)).First();
+            double distanceToClosestLine = Math.Abs(closest - noteIndicator.ActualHeight / 2);
+            
+            if (distanceToClosestLine < SNAPPING_THRESHOLD )
+            {
+                Canvas.SetTop(noteIndicator, closest - noteIndicator.ActualHeight / 2);
+            }
+            else
+            {
+                Canvas.SetTop(noteIndicator, pos.Y - noteIndicator.ActualHeight / 2);
+            }
+        }
+
+
+        private List<double> GetStaffLinesPositions(Score score)
+        {
+            var linesPositions = new List<double>();
+            var staffSystems = score.Systems;
+
+            foreach (StaffSystem system in  staffSystems)
+            {
+                foreach(var lines in system.LinePositions.Values)
+                {
+                    linesPositions.AddRange( AddValuesInBetween(lines) );
+                }
+            }
+
+            return linesPositions;
+        }
+
+        private double[] AddValuesInBetween(double[] values)
+        {
+            return values.SelectMany((v, i) => i < values.Length - 1
+                    ? new[] { v, (v + values[i + 1]) / 2.0 }
+                    : new[] { v })
+                .ToArray();
         }
 
     }
