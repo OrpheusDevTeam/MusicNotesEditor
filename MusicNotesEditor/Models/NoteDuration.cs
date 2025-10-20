@@ -1,6 +1,6 @@
 ﻿using Manufaktura.Music.Model;
 using System.Collections.Generic;
-using System.Windows.Input; // for KeyGesture
+using System.Windows.Input;
 
 namespace MusicNotesEditor.Models
 {
@@ -31,6 +31,12 @@ namespace MusicNotesEditor.Models
             new NoteDuration("t", RhythmicDuration.D32nd, "32nd Note", "Ctrl+6", new KeyGesture(Key.D6, ModifierKeys.Control)),
             new NoteDuration("u", RhythmicDuration.D64th, "64th Note", "Ctrl+7", new KeyGesture(Key.D7, ModifierKeys.Control)),
         };
+
+        public static string SmuflCharFromDuration(RhythmicDuration? duration)
+        {
+            var matchingDuration = AvailableNotes.FirstOrDefault(note => note.Duration == duration);
+            return matchingDuration?.SmuflChar ?? "";
+        }
 
     }
 }

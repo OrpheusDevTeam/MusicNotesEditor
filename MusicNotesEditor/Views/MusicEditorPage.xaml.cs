@@ -1,4 +1,5 @@
 ﻿using Manufaktura.Controls.Model;
+using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
 using MusicNotesEditor.Models;
 using MusicNotesEditor.ViewModels;
@@ -7,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace MusicNotesEditor.Views
 {
@@ -16,6 +18,9 @@ namespace MusicNotesEditor.Views
     public partial class MusicEditorPage : Page
     {
         private readonly MusicEditorViewModel viewModel = new MusicEditorViewModel();
+        private readonly Canvas mainCanvas;
+
+        TextBlock noteCursor;
         public MusicEditorPage()
         {
             InitializeComponent();
@@ -26,6 +31,19 @@ namespace MusicNotesEditor.Views
 
             mainGrid.SizeChanged += MainGrid_SizeChanged;
             noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
+
+            mainCanvas = (Canvas)noteViewer.FindName("MainCanvas");
+            noteViewer.MouseEnter += Canvas_MouseEnter;
+            noteViewer.MouseLeave += Canvas_MouseLeave;
+            noteViewer.MouseMove += Canvas_MouseMove;
+
+            noteCursor = new TextBlock
+            {
+                FontSize = 26,
+                Foreground = Brushes.Blue,
+                FontFamily = (FontFamily)FindResource("Polihymnia")
+            };
+
         }
 
 
@@ -85,9 +103,15 @@ namespace MusicNotesEditor.Views
 
         private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
         {
-
-            Console.WriteLine($"Selected element: {noteViewer.SelectedElement}");
-
+            if (noteViewer.SelectedElement != null)
+            {
+                Console.WriteLine($"Selected element: {noteViewer.SelectedElement} Location: {noteViewer.SelectedElement.RenderedWidth} Type:{noteViewer.SelectedElement.GetType()}");
+            }
+            if (noteViewer.SelectedElement is StaffFragment)
+            {
+                StaffFragment fragment = noteViewer.SelectedElement as StaffFragment;
+                Console.WriteLine($"Fragment: {string.Join(", ", fragment.LinePositions)}");
+            }
             Console.WriteLine("\nAll elements\n:");
 
             var staves = noteViewer.ScoreSource.Staves;
@@ -97,7 +121,7 @@ namespace MusicNotesEditor.Views
                 var elements = staves[i].Elements;
                 for (int j = 0; j < elements.Count; j++)
                 {
-                    Console.WriteLine($"\tStave: {i + 1} Element: {j+1}. {elements[j]}");
+                    Console.WriteLine($"\tStave: {i + 1} Element: {j+1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
                 }
             }
 
@@ -111,10 +135,12 @@ namespace MusicNotesEditor.Views
             if (viewModel.CurrentNote == note)
             {
                 viewModel.CurrentNote = null;
+                noteViewer.IsSelectable = true;
             }
             else
             {
                 viewModel.CurrentNote = note;
+                noteViewer.IsSelectable = false;
             }
 
             foreach (ToggleButton noteButton in notesButtons)
@@ -126,6 +152,28 @@ namespace MusicNotesEditor.Views
                 noteButton.IsChecked = buttonDuration == viewModel.CurrentNote;
             }
             
+        }
+
+        private void Canvas_MouseEnter(object sender, MouseEventArgs e)
+        {
+            noteCursor.Visibility = Visibility.Visible;
+            mainCanvas.Children.Add(noteCursor);
+
+            noteCursor.Text = NoteDuration.SmuflCharFromDuration(viewModel.CurrentNote);
+        }
+
+        private void Canvas_MouseLeave(object sender, MouseEventArgs e)
+        {
+            noteCursor.Visibility = Visibility.Collapsed;
+            mainCanvas.Children.Remove(noteCursor);
+        }
+
+        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            // Update letter position to follow the mouse
+            var pos = e.GetPosition(mainCanvas);
+            Canvas.SetLeft(noteCursor, pos.X - noteCursor.ActualWidth/2);
+            Canvas.SetTop(noteCursor, pos.Y - noteCursor.ActualHeight/2);
         }
 
     }
