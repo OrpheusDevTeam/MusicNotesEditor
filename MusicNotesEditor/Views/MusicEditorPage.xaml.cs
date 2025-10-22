@@ -103,32 +103,6 @@ namespace MusicNotesEditor.Views
             noteViewer.Height = noteViewer.Width * 1.414;
         }
 
-        private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
-        {
-            if (noteViewer.SelectedElement != null)
-            {
-                Console.WriteLine($"Selected element: {noteViewer.SelectedElement} Location: {noteViewer.SelectedElement.RenderedWidth} Type:{noteViewer.SelectedElement.GetType()}");
-            }
-            if (noteViewer.SelectedElement is StaffFragment)
-            {
-                StaffFragment fragment = noteViewer.SelectedElement as StaffFragment;
-                Console.WriteLine($"Fragment: {string.Join(", ", fragment.LinePositions)}");
-            }
-            Console.WriteLine("\nAll elements\n:");
-
-            var staves = noteViewer.ScoreSource.Staves;
-
-            for (int i=0; i < staves.Count; i++)
-            {
-                var elements = staves[i].Elements;
-                for (int j = 0; j < elements.Count; j++)
-                {
-                    Console.WriteLine($"\tStave: {i + 1} Element: {j+1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
-                }
-            }
-
-            Console.WriteLine("\n\n");
-        }
 
         private void ToggleNote(RhythmicDuration note)
         {
@@ -173,13 +147,14 @@ namespace MusicNotesEditor.Views
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
             // Update letter position to follow the mouse
-            var pos = e.GetPosition(mainCanvas);
+            var pos = e.GetPosition(mainCanvas); 
             Canvas.SetLeft(noteIndicator, pos.X - noteIndicator.ActualWidth / 2);
             
             var staffLinesPosition = GetStaffLinesPositions(viewModel.Data);
             
             double closest = staffLinesPosition.OrderBy(v => Math.Abs(v - pos.Y)).First();
-            double distanceToClosestLine = Math.Abs(closest - noteIndicator.ActualHeight / 2);
+            double distanceToClosestLine = Math.Abs(closest - pos.Y);
+
             
             if (distanceToClosestLine < SNAPPING_THRESHOLD )
             {
@@ -214,6 +189,47 @@ namespace MusicNotesEditor.Views
                     ? new[] { v, (v + values[i + 1]) / 2.0 }
                     : new[] { v })
                 .ToArray();
+        }
+
+
+        private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
+        {
+            if (viewModel.CurrentNote != null)
+            {
+
+                var pos = e.GetPosition(mainCanvas);
+                
+                var staffLinesPosition = GetStaffLinesPositions(viewModel.Data);
+
+                double closest = staffLinesPosition.OrderBy(v => Math.Abs(v - pos.Y)).First();
+                double distanceToClosestLine = Math.Abs(closest - noteIndicator.ActualHeight / 2);
+
+
+                
+            }
+            if (noteViewer.SelectedElement != null)
+            {
+                Console.WriteLine($"Selected element: {noteViewer.SelectedElement} Location: {noteViewer.SelectedElement.RenderedWidth} Type:{noteViewer.SelectedElement.GetType()}");
+            }
+            if (noteViewer.SelectedElement is StaffFragment)
+            {
+                StaffFragment fragment = noteViewer.SelectedElement as StaffFragment;
+                Console.WriteLine($"Fragment: {string.Join(", ", fragment.LinePositions)}");
+            }
+            Console.WriteLine("\nAll elements\n:");
+
+            var staves = noteViewer.ScoreSource.Staves;
+
+            for (int i = 0; i < staves.Count; i++)
+            {
+                var elements = staves[i].Elements;
+                for (int j = 0; j < elements.Count; j++)
+                {
+                    Console.WriteLine($"\tStave: {i + 1} Element: {j + 1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
+                }
+            }
+
+            Console.WriteLine("\n\n");
         }
 
     }
