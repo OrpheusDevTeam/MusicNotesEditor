@@ -19,10 +19,23 @@
             Name="goToMusicEditorButton"
             Click="GoToMusicEditorPage" 
             VerticalAlignment="Center"
+            HorizontalAlignment="Left"
+            Margin="100"
             Width="200"
             Height="40">
             Go to Music Editor
         </Button>
-    
+
+        <Button 
+            Name="loadMusicXMLButton"
+            Click="SelectMusicXMLFile" 
+            VerticalAlignment="Center"
+            HorizontalAlignment="Right"
+            Margin="100"
+            Width="200"
+            Height="40">
+            Select MusicXML File to Load
+        </Button>
+
     </Grid>
 </Page>

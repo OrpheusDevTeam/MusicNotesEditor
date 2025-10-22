@@ -1,8 +1,12 @@
-﻿using Manufaktura.Controls.Audio;
+﻿using System.Windows.Navigation;
+using System.Xml.Linq;
+using Manufaktura.Controls.Audio;
 using Manufaktura.Controls.Desktop.Audio;
 using Manufaktura.Controls.Model;
+using Manufaktura.Controls.Parser;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
+using MusicNotesEditor.Views;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace MusicNotesEditor.ViewModels
@@ -25,8 +29,15 @@ namespace MusicNotesEditor.ViewModels
             score.FirstStaff.Elements.Add(new Note(Pitch.C5, RhythmicDuration.Half));
             score.FirstStaff.Elements.Add(new Barline()); 
             //xml parsing testing
-            //var parser = new MusicXmlParser();
-            //var score = parser.Parse(XDocument.Load(@"C:\Users\Dreamer\Documents\MuseScore4\Scores\testscore2.musicxml"));
+            var parser = new MusicXmlParser();
+            var score1 = parser.Parse(XDocument.Load(@"C:\Users\jmosz\Desktop\Studia\ZPI Team Project\testing\MusicXML\Chant.musicxml"));
+            Data = score1;
+        }
+
+        public void LoadData(string filepath)
+        {
+            var parser = new MusicXmlParser();
+            var score = parser.Parse(XDocument.Load(filepath));
             Data = score;
         }
 

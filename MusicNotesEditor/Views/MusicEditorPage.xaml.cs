@@ -1,7 +1,8 @@
-﻿using MusicNotesEditor.ViewModels;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Navigation;
+using MusicNotesEditor.ViewModels;
 
 namespace MusicNotesEditor.Views
 {
@@ -21,7 +22,24 @@ namespace MusicNotesEditor.Views
             mainGrid.SizeChanged += MainGrid_SizeChanged;
             noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
         }
+        public MusicEditorPage(string filepath)
+        {
+            InitializeComponent();
 
+            var viewModel = new MusicEditorViewModel();
+            DataContext = viewModel;
+            try
+            {
+                viewModel.LoadData(filepath);
+            }
+            catch (Exception e)
+            {
+                viewModel.LoadTestData();
+            }
+
+            mainGrid.SizeChanged += MainGrid_SizeChanged;
+            noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
+        }
         private void MainGrid_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             double containerWidth = mainGrid.ActualWidth;
@@ -52,5 +70,9 @@ namespace MusicNotesEditor.Views
             Console.WriteLine("\n\n");
         }
 
+        private void noteViewer_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
