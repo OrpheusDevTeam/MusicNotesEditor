@@ -9,6 +9,8 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Navigation;
+using MusicNotesEditor.ViewModels;
 
 namespace MusicNotesEditor.Views
 {
@@ -23,13 +25,25 @@ namespace MusicNotesEditor.Views
         private readonly Canvas mainCanvas;
 
         TextBlock noteIndicator;
-        public MusicEditorPage()
+        public MusicEditorPage(string filepath = "")
         {
             InitializeComponent();
             GenerateNoteButtons();
 
             DataContext = viewModel;
-            viewModel.LoadTestData();
+            try
+            {
+                if (string.IsNullOrEmpty(filepath))
+                    viewModel.LoadTestData();
+                else
+                    viewModel.LoadData(filepath);
+            }
+            catch (Exception)
+            {
+                // Should handle different exception and actually go back to main menu
+                // with error message
+                viewModel.LoadTestData();
+            }
 
             mainGrid.SizeChanged += MainGrid_SizeChanged;
             noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
@@ -83,13 +97,12 @@ namespace MusicNotesEditor.Views
                 NoteToolbar.Items.Add(btn);
 
                 var keyBinding = new KeyBinding(
-                    new RelayCommand(() => {
+                    new RelayCommand(() =>
+                    {
                         btn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                        }
+                    }
                     ),
                     note.Shortcut);
-
-                this.InputBindings.Add(keyBinding);
             }
         }
 
@@ -194,19 +207,6 @@ namespace MusicNotesEditor.Views
 
         private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
         {
-            if (viewModel.CurrentNote != null)
-            {
-
-                var pos = e.GetPosition(mainCanvas);
-                
-                var staffLinesPosition = GetStaffLinesPositions(viewModel.Data);
-
-                double closest = staffLinesPosition.OrderBy(v => Math.Abs(v - pos.Y)).First();
-                double distanceToClosestLine = Math.Abs(closest - noteIndicator.ActualHeight / 2);
-
-
-                
-            }
             if (noteViewer.SelectedElement != null)
             {
                 Console.WriteLine($"Selected element: {noteViewer.SelectedElement} Location: {noteViewer.SelectedElement.RenderedWidth} Type:{noteViewer.SelectedElement.GetType()}");
@@ -232,5 +232,9 @@ namespace MusicNotesEditor.Views
             Console.WriteLine("\n\n");
         }
 
+        private void NoteViewer_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

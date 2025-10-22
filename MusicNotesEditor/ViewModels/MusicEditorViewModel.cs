@@ -1,10 +1,14 @@
-﻿using Manufaktura.Controls.Audio;
+﻿using System.Windows.Navigation;
+using System.Xml.Linq;
+using Manufaktura.Controls.Audio;
 using Manufaktura.Controls.Desktop.Audio;
 using Manufaktura.Controls.Model;
 using Manufaktura.Controls.Parser;
-using Manufaktura.Controls.Primitives;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
+using MusicNotesEditor.Views;
+using static System.Formats.Asn1.AsnWriter;
+
 using System.Xml.Linq;
 namespace MusicNotesEditor.ViewModels
 {
@@ -26,9 +30,13 @@ namespace MusicNotesEditor.ViewModels
             score.FirstStaff.Elements.Add(new Note(Pitch.C5, RhythmicDuration.Half));
             score.FirstStaff.Elements.Add(new Note(Pitch.C5, RhythmicDuration.Half));
             score.FirstStaff.Elements.Add(new Barline()); 
-            //xml parsing testing
-            //var parser = new MusicXmlParser();
-            //var score = parser.Parse(XDocument.Load(@"C:\Users\Dreamer\Documents\MuseScore4\Scores\testscore3.musicxml"));
+            Data = score;
+        }
+
+        public void LoadData(string filepath)
+        {
+            var parser = new MusicXmlParser();
+            var score = parser.Parse(XDocument.Load(filepath));
             Data = score;
         }
 

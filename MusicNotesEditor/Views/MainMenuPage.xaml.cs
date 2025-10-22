@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Microsoft.Win32;
 
 namespace MusicNotesEditor.Views
 {
@@ -30,6 +31,36 @@ namespace MusicNotesEditor.Views
         {
             NavigationService nav = NavigationService.GetNavigationService(this);
             nav.Navigate(new MusicEditorPage());
+        }
+
+        private string SelectFile(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+
+            // Configure the dialog
+            openFileDialog.Title = "Select a file";
+            openFileDialog.Filter = "MusicXML files (*.musicxml)|*.musicxml";
+            openFileDialog.FilterIndex = 2;
+            openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            openFileDialog.Multiselect = false;
+
+            // Show the dialog
+            bool? result = openFileDialog.ShowDialog();
+
+            // Process the result
+            if (result == true)
+            {
+                return openFileDialog.FileName;
+            }
+
+            return "";
+        }
+
+        private void SelectMusicXMLFile(object sender, RoutedEventArgs e)
+        {
+            string filepath = SelectFile(sender, e);
+            NavigationService nav = NavigationService.GetNavigationService(this);
+            nav.Navigate(new MusicEditorPage(filepath));
         }
     }
 
