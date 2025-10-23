@@ -2,7 +2,6 @@
 using System.Windows.Navigation;
 using System.Xml;
 using System.Xml.Linq;
-using System.Xml.Linq;
 using System.Xml.Schema;
 using Manufaktura.Controls.Audio;
 using Manufaktura.Controls.Desktop.Audio;
