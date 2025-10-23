@@ -9,10 +9,12 @@ using Manufaktura.Music.Model.MajorAndMinor;
 using MusicNotesEditor.Views;
 using static System.Formats.Asn1.AsnWriter;
 
+using System.Xml.Linq;
 namespace MusicNotesEditor.ViewModels
 {
     class MusicEditorViewModel : ViewModel
     {
+        public RhythmicDuration? CurrentNote = null;
         private ScorePlayer player;
         private Score data;
         public Score Data
@@ -28,10 +30,7 @@ namespace MusicNotesEditor.ViewModels
             score.FirstStaff.Elements.Add(new Note(Pitch.C5, RhythmicDuration.Half));
             score.FirstStaff.Elements.Add(new Note(Pitch.C5, RhythmicDuration.Half));
             score.FirstStaff.Elements.Add(new Barline()); 
-            //xml parsing testing
-            var parser = new MusicXmlParser();
-            var score1 = parser.Parse(XDocument.Load(@"C:\Users\jmosz\Desktop\Studia\ZPI Team Project\testing\MusicXML\Chant.musicxml"));
-            Data = score1;
+            Data = score;
         }
 
         public void LoadData(string filepath)

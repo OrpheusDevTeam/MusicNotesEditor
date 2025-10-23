@@ -9,10 +9,8 @@
         <Setter Property="Margin" Value="5"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <!-- works if you override ControlTemplate below -->
         <Setter Property="SnapsToDevicePixels" Value="True"/>
 
-        <!-- 🧭 Custom Template for rounded look -->
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -25,7 +23,6 @@
                                           RecognizesAccessKey="True"/>
                     </Border>
 
-                    <!-- 🎨 States -->
                     <ControlTemplate.Triggers>
 
                         <!-- Hover -->

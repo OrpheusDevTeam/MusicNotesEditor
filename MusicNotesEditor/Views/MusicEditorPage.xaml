@@ -26,7 +26,8 @@
             <ToolBarTray Grid.Column="0"
                          VerticalAlignment="Center" 
                          Background="Transparent">
-                <ToolBar Background="Transparent" 
+                <ToolBar x:Name="NoteToolbar"
+                    Background="Transparent" 
                     BorderThickness="0"
                     FontFamily="{StaticResource Polihymnia}"
                     FontSize="24"
@@ -75,16 +76,6 @@
                         </Style>
                     </ToolBar.Resources>
                     
-                    
-                    
-                    <ToggleButton Content="u" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="t" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="s" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="e" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="q" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="h" Style="{StaticResource ToolBarButtonStyle}"/>
-                    <ToggleButton Content="w" Style="{StaticResource ToolBarButtonStyle}"/>
-
                 </ToolBar>
             </ToolBarTray>
 
@@ -100,9 +91,9 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center" 
                         >
-                <Button Content=" Play " Margin="5" MinHeight="24"/>
-                <Button Content=" Parts " Margin="5" MinHeight="24"/>
-                <Button Content=" Settings " Margin="5" MinHeight="24"/>
+                <Button Content="  Play  " Margin="4" MinHeight="24"/>
+                <Button Content="  Parts  " Margin="4" MinHeight="24"/>
+                <Button Content="  Settings  " Margin="4" MinHeight="24"/>
             </StackPanel>
         </Grid>
 
@@ -110,12 +101,12 @@
         <ScrollViewer Grid.Row="1"
                   VerticalScrollBarVisibility="Auto"
                   Margin="0,10,0,0">
-            
+
             <ManufakturaControls:NoteViewer
             Background="White"
             x:Name="noteViewer" 
             Margin="30"
-            Padding="15,120,15,20"
+            Padding="100,120,15,20"
             BorderThickness="1"
             BorderBrush="Black"
             IsMusicPaperMode="True"
