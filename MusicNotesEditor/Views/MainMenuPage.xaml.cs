@@ -68,8 +68,14 @@ namespace MusicNotesEditor.Views
             try
             {
                 viewModel.TestData(filepath);
-                NavigationService nav = NavigationService.GetNavigationService(this);
-                nav.Navigate(new MusicEditorPage(filepath));
+                if (viewModel.ValidateMusicXmlWithXsd(filepath) == true) {
+                    NavigationService nav = NavigationService.GetNavigationService(this);
+                    nav.Navigate(new MusicEditorPage(filepath));
+                } 
+                else
+                {
+                    MessageBox.Show("There was an error loading the chosen file, please ensure the format and content are follow the correct MusicXML standard.", "File import error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
             catch (Exception)
             {
