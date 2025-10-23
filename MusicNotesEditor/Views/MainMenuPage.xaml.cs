@@ -13,7 +13,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Manufaktura.Controls.Model;
 using Microsoft.Win32;
+using MusicNotesEditor.ViewModels;
 
 namespace MusicNotesEditor.Views
 {
@@ -22,6 +24,9 @@ namespace MusicNotesEditor.Views
     /// </summary>
     public partial class MainMenuPage : Page
     {
+
+        private readonly MainMenuViewModel viewModel = new MainMenuViewModel();
+
         public MainMenuPage()
         {
             InitializeComponent();
@@ -39,7 +44,7 @@ namespace MusicNotesEditor.Views
 
             // Configure the dialog
             openFileDialog.Title = "Select a file";
-            openFileDialog.Filter = "MusicXML files (*.musicxml)|*.musicxml";
+            openFileDialog.Filter = "MusicXML files (*.musicxml)|*.musicxml|XML files (*.xml)|*xml|All files (*.*)|*.*";
             openFileDialog.FilterIndex = 2;
             openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             openFileDialog.Multiselect = false;
@@ -59,8 +64,17 @@ namespace MusicNotesEditor.Views
         private void SelectMusicXMLFile(object sender, RoutedEventArgs e)
         {
             string filepath = SelectFile(sender, e);
-            NavigationService nav = NavigationService.GetNavigationService(this);
-            nav.Navigate(new MusicEditorPage(filepath));
+            DataContext = viewModel;
+            try
+            {
+                viewModel.TestData(filepath);
+                NavigationService nav = NavigationService.GetNavigationService(this);
+                nav.Navigate(new MusicEditorPage(filepath));
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("There was an error loading the chosen file, please ensure the format and content are follow the correct MusicXML standard.", "File import error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 

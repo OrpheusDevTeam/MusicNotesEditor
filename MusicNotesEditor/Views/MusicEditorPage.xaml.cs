@@ -33,16 +33,11 @@ namespace MusicNotesEditor.Views
             DataContext = viewModel;
             try
             {
-                if (string.IsNullOrEmpty(filepath))
-                    viewModel.LoadTestData();
-                else
-                    viewModel.LoadData(filepath);
+                viewModel.LoadData(filepath);
             }
             catch (Exception)
             {
-                // Should handle different exception and actually go back to main menu
-                // with error message
-                viewModel.LoadTestData();
+                viewModel.LoadData("C:\\Users\\jmosz\\Desktop\\Studia\\ZPI Team Project\\testing\\MusicXML\\Chant.musicxml");
             }
 
             mainGrid.SizeChanged += MainGrid_SizeChanged;
