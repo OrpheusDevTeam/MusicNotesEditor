@@ -113,7 +113,9 @@
             RenderingMode="SinglePage"
             CurrentPage="1"
             ZoomFactor="1.25"
-            ScoreSource="{Binding Data}" Loaded="noteViewer_Loaded"/>
+            ScoreSource="{Binding Data}" 
+            Loaded="NoteViewer_Loaded"
+            />
         </ScrollViewer>
 
     </Grid>
