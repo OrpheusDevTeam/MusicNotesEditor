@@ -9,10 +9,6 @@ using Manufaktura.Controls.Primitives;
 using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
-using Newtonsoft.Json;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Windows;
 using System.Xml;
 using System.Xml.Linq;
@@ -27,6 +23,8 @@ namespace MusicNotesEditor.ViewModels
         public RhythmicDuration? CurrentNote = null;
         public double NoteViewerContentWidth;
         public double NoteViewerContentHeight;
+        public string XmlPath = "";
+
         private ScorePlayer player;
         private Score data;
         public Score Data
@@ -72,6 +70,8 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialTemplate(int numberOfParts)
         {
+            if (!string.IsNullOrEmpty(XmlPath))
+                return;
 
             for (int i = 0; i < numberOfParts; i++)
             {
@@ -112,19 +112,46 @@ namespace MusicNotesEditor.ViewModels
         {
             var parser = new MusicXmlParser();
             var score = parser.Parse(XDocument.Load(filepath));
-
-            foreach (var staff in score.Staves)
-            {
-                FixMeasures(staff);
-            }
-
+            
             Data = score;
+            FixWidth();
+
         }
 
         public void PlayScore()
         {
             player = player = new MidiTaskScorePlayer(Data);
             player.Play();
+        }
+
+        public void FixWidth()
+        {
+            foreach (var staff in Data.Staves)
+            {
+                // Remove all existing system breaks
+                for (int i = staff.Elements.Count - 1; i >= 0; i--)
+                {
+                    if (staff.Elements[i] is PrintSuggestion ps && ps.IsSystemBreak)
+                        staff.Elements.RemoveAt(i);
+                }
+
+                for (int i = 0; i < staff.Elements.Count; i++)
+                {
+                    if (staff.Elements[i] is not Barline barline)
+                        continue;
+
+                    var lastBarlineXPosition = barline.ActualRenderedBounds.SE.X;
+                    Console.WriteLine($"Barline[{i}] X={lastBarlineXPosition}");
+                    if (lastBarlineXPosition > NoteViewerContentWidth && i > 0)
+                    {
+                        AddNewLine(staff, i - 1);
+                        i++;
+                    }
+                }
+
+                FixMeasures(staff);
+            }
+
         }
 
 
@@ -145,13 +172,18 @@ namespace MusicNotesEditor.ViewModels
 
         public static void AddNewLine(Staff staff)
         {
-            FixMeasures(staff);
-
+            
             var lineBreak = new PrintSuggestion() { IsSystemBreak = true };
             staff.Add(lineBreak);
         }
 
 
+        public static void AddNewLine(Staff staff, int index)
+        {
+            
+            var lineBreak = new PrintSuggestion() { IsSystemBreak = true };
+            staff.Elements.Insert(index, lineBreak);
+        }
 
 
         public static void FixMeasures(Staff staff)
@@ -223,10 +255,6 @@ namespace MusicNotesEditor.ViewModels
             del.DynamicInvoke(staff, new InvalidateEventArgs<Staff>(staff));
         }
 
-        public void FuckingDebug()
-        {
-
-        }
 
     }
 }

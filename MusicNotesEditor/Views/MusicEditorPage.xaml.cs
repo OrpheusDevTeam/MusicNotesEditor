@@ -30,17 +30,13 @@ namespace MusicNotesEditor.Views
             GenerateNoteButtons();
 
             DataContext = viewModel;
+            viewModel.XmlPath = filepath;
 
             try
             {
                 if (string.IsNullOrEmpty(filepath))
                 {
                     viewModel.LoadInitialData();
-                    /* 
-                     * Part of initializing data has to be moved to first render
-                     * as it needs rendering bounds of barlines to put system breaks correctly
-                    */
-                    CompositionTarget.Rendering += InitializeDataOnFirstRender;
                 }
 
                 else
@@ -53,6 +49,12 @@ namespace MusicNotesEditor.Views
                 Console.WriteLine(ex);
                 viewModel.LoadInitialData();
             }
+
+            /* 
+             * Part of initializing data has to be moved to first render
+             * as it needs rendering bounds of barlines to put system breaks correctly
+            */
+            CompositionTarget.Rendering += InitializeDataOnFirstRender;
 
             mainGrid.SizeChanged += MainGrid_SizeChanged;
             noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
@@ -73,10 +75,12 @@ namespace MusicNotesEditor.Views
 
         private void InitializeDataOnFirstRender(object? sender, EventArgs e)
         {
+            CompositionTarget.Rendering -= InitializeDataOnFirstRender;
+
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
-            CompositionTarget.Rendering -= InitializeDataOnFirstRender;
             viewModel.LoadInitialTemplate();
+            viewModel.FixWidth();
         }
 
 
@@ -174,6 +178,11 @@ namespace MusicNotesEditor.Views
             
         }
 
+        private void AddNote(object sender, MouseButtonEventArgs e)
+        {
+
+        }
+
         private void Canvas_MouseEnter(object sender, MouseEventArgs e)
         {
             noteIndicator.Visibility = Visibility.Visible;
@@ -211,6 +220,12 @@ namespace MusicNotesEditor.Views
         }
 
 
+        private void NoteViewer_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+
         private List<double> GetStaffLinesPositions(Score score)
         {
             var linesPositions = new List<double>();
@@ -235,11 +250,6 @@ namespace MusicNotesEditor.Views
                 .ToArray();
         }
 
-
-        private void NoteViewer_Loaded(object sender, RoutedEventArgs e)
-        {
-
-        }
 
         // Function for printing debug information about note viewer
         // Runs when it's clicked. It will be messy. Delete after finishing note viewer.
@@ -292,21 +302,16 @@ namespace MusicNotesEditor.Views
             }
             Console.WriteLine("\nAll elements\n:");
 
-            //var staves = noteViewer.ScoreSource.Staves;
+            var staves2 = noteViewer.ScoreSource.Staves;
 
-            //for (int i = 0; i < staves.Count; i++)
-            //{
-            //    var elements = staves[i].Elements;
-            //    for (int j = 0; j < elements.Count; j++)
-            //    {
-            //        Console.WriteLine($"\tStave: {i + 1} Element: {j + 1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
-            //        var element = elements[j] as Note;
-            //        if(element != null)
-            //        {
-            //            //element.Pitch = Pitch.A4;
-            //        }
-            //    }
-            //}
+            for (int i = 0; i < staves2.Count; i++)
+            {
+                var elements = staves2[i].Elements;
+                for (int j = 0; j < elements.Count; j++)
+                {
+                    Console.WriteLine($"\tStave: {i + 1} Element: {j + 1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
+                }
+            }
 
             Console.WriteLine("\n\n");
         }
