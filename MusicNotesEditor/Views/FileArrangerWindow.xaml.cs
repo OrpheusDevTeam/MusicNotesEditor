@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 
 namespace MusicNotesEditor.Views
@@ -68,7 +71,21 @@ namespace MusicNotesEditor.Views
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+            GenerateThumbnails();
             UpdateFileCount();
+        }
+
+        private void PreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button)
+            {
+                if (button.DataContext is FileItem fileItem)
+                {
+                    var previewWindow = new FilePreviewWindow(fileItem);
+                    previewWindow.Owner = this;
+                    previewWindow.ShowDialog();
+                }
+            }
         }
 
         private string FormatFileSize(long bytes)
@@ -223,14 +240,273 @@ namespace MusicNotesEditor.Views
             lblFileCount.Text = $"{fileItems.Count} file(s) selected";
             btnProcess.IsEnabled = fileItems.Count > 0;
         }
+
+        private async void GenerateThumbnails()
+        {
+            foreach (var fileItem in fileItems)
+            {
+                if (fileItem.Thumbnail == null)
+                {
+                    await GenerateThumbnailAsync(fileItem);
+                }
+            }
+        }
+
+        private async Task GenerateThumbnailAsync(FileItem fileItem)
+        {
+            try
+            {
+                // Set a temporary placeholder immediately
+                fileItem.Thumbnail = CreateDefaultThumbnail("Loading...");
+
+                var thumbnail = await Task.Run(() => CreateThumbnail(fileItem.FilePath));
+                if (thumbnail != null)
+                {
+                    fileItem.Thumbnail = thumbnail;
+                }
+                else
+                {
+                    fileItem.Thumbnail = CreateDefaultThumbnail("Error");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error generating thumbnail for {fileItem.FileName}: {ex.Message}");
+                fileItem.Thumbnail = CreateDefaultThumbnail("Error");
+            }
+        }
+
+        private BitmapImage CreateThumbnail(string filePath)
+        {
+            var extension = Path.GetExtension(filePath).ToLower();
+
+            try
+            {
+                switch (extension)
+                {
+                    case ".png":
+                    case ".jpg":
+                    case ".jpeg":
+                        return CreateImageThumbnail(filePath);
+                    case ".pdf":
+                        return CreatePdfThumbnail(filePath);
+                    default:
+                        return CreateDefaultThumbnail("Unsupported");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating thumbnail for {filePath}: {ex.Message}");
+                return CreateDefaultThumbnail("Error");
+            }
+        }
+
+        private BitmapImage CreateImageThumbnail(string imagePath)
+        {
+            try
+            {
+                var bitmapImage = new BitmapImage();
+                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+                {
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = fileStream;
+                    bitmapImage.DecodePixelWidth = 120; // Thumbnail size
+                    bitmapImage.DecodePixelHeight = 90;
+                    bitmapImage.CreateOptions = BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat;
+                    bitmapImage.EndInit();
+                }
+
+                // If the image has transparency, convert it to a format that supports it better
+                if (bitmapImage.Format == PixelFormats.Bgr32 ||
+                    bitmapImage.Format == PixelFormats.Bgra32 ||
+                    bitmapImage.Format == PixelFormats.Pbgra32)
+                {
+                    bitmapImage = ConvertToCompatibleFormat(bitmapImage);
+                }
+
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading image {imagePath}: {ex.Message}");
+                Debug.WriteLine($"Image format: {Path.GetExtension(imagePath)}");
+                return CreateDefaultThumbnail("Image Error");
+            }
+        }
+
+        private BitmapImage ConvertToCompatibleFormat(BitmapImage sourceImage)
+        {
+            try
+            {
+                var formatConvertedBitmap = new FormatConvertedBitmap();
+                formatConvertedBitmap.BeginInit();
+                formatConvertedBitmap.Source = sourceImage;
+                formatConvertedBitmap.DestinationFormat = PixelFormats.Pbgra32; // Standard format that works well
+                formatConvertedBitmap.EndInit();
+                formatConvertedBitmap.Freeze();
+
+                // Convert back to BitmapImage
+                var bitmapImage = new BitmapImage();
+                using (var stream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(formatConvertedBitmap));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch
+            {
+                return sourceImage; // Return original if conversion fails
+            }
+        }
+
+        private BitmapImage CreatePdfThumbnail(string pdfPath)
+        {
+            // For now, return a PDF placeholder
+            return CreateDefaultThumbnail("PDF");
+        }
+
+        private BitmapImage CreateDefaultThumbnail(string text = "Preview")
+        {
+            try
+            {
+                var drawingVisual = new DrawingVisual();
+                using (var drawingContext = drawingVisual.RenderOpen())
+                {
+                    // Draw background
+                    drawingContext.DrawRectangle(Brushes.LightGray, null, new Rect(0, 0, 60, 45));
+
+                    // Draw border
+                    drawingContext.DrawRectangle(null, new Pen(Brushes.DarkGray, 1), new Rect(0, 0, 60, 45));
+
+                    // Draw text
+                    var formattedText = new FormattedText(
+                        text,
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        FlowDirection.LeftToRight,
+                        new Typeface("Arial"),
+                        8, // Smaller font
+                        Brushes.Black,
+                        1.0);
+
+                    // Center the text
+                    double x = (60 - formattedText.Width) / 2;
+                    double y = (45 - formattedText.Height) / 2;
+                    drawingContext.DrawText(formattedText, new Point(x, y));
+                }
+
+                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
+                renderTarget.Render(drawingVisual);
+
+                var bitmapImage = new BitmapImage();
+                using (var stream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating default thumbnail: {ex.Message}");
+                // Return a simple colored rectangle as fallback
+                return CreateSimpleColorThumbnail(Colors.LightGray);
+            }
+        }
+
+        private BitmapImage CreateSimpleColorThumbnail(Color color)
+        {
+            try
+            {
+                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
+                var drawingVisual = new DrawingVisual();
+
+                using (var drawingContext = drawingVisual.RenderOpen())
+                {
+                    drawingContext.DrawRectangle(new SolidColorBrush(color), null, new Rect(0, 0, 60, 45));
+                }
+
+                renderTarget.Render(drawingVisual);
+                renderTarget.Freeze();
+
+                // Convert RenderTargetBitmap to BitmapImage
+                var bitmapImage = new BitmapImage();
+                using (var stream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch
+            {
+                // Ultimate fallback - return null
+                return null;
+            }
+        }
+
     }
 
-    public class FileItem
+    public class FileItem : INotifyPropertyChanged
     {
-        public int Order { get; set; }
+        private int _order;
+        private ImageSource _thumbnail;
+
+        public int Order
+        {
+            get => _order;
+            set
+            {
+                _order = value;
+                OnPropertyChanged(nameof(Order));
+            }
+        }
+
         public string FilePath { get; set; }
         public string FileName { get; set; }
         public string FileType { get; set; }
         public string FileSize { get; set; }
+
+        public ImageSource Thumbnail
+        {
+            get => _thumbnail;
+            set
+            {
+                _thumbnail = value;
+                OnPropertyChanged(nameof(Thumbnail));
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

@@ -105,11 +105,11 @@ namespace MusicNotesEditor.Views
             // For example, you might want to navigate to a processing page:
             // NavigationService.Navigate(new ImageToMusicXmlPage(orderedFiles));
 
-            MessageBox.Show($"Successfully arranged {orderedFiles.Length} files!\n\n" +
-                           "Files will be processed in this order:\n" +
-                           string.Join("\n", orderedFiles.Select((f, i) => $"{i + 1}. {System.IO.Path.GetFileName(f)}")),
-                           "Files Ready for Processing",
-                           MessageBoxButton.OK, MessageBoxImage.Information);
+            //MessageBox.Show($"Successfully arranged {orderedFiles.Length} files!\n\n" +
+            //               "Files will be processed in this order:\n" +
+            //               string.Join("\n", orderedFiles.Select((f, i) => $"{i + 1}. {System.IO.Path.GetFileName(f)}")),
+            //               "Files Ready for Processing",
+            //               MessageBoxButton.OK, MessageBoxImage.Information);
 
             NavigationService nav = NavigationService.GetNavigationService(this);
             nav.Navigate(new MusicEditorPage());
