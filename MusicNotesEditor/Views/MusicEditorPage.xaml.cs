@@ -25,7 +25,7 @@ namespace MusicNotesEditor.Views
         private readonly Canvas mainCanvas;
 
         TextBlock noteIndicator;
-        public MusicEditorPage(string filepath = "")
+        public MusicEditorPage(string filepath = "C:\\Users\\jmosz\\Desktop\\Studia\\ZPI Team Project\\testing\\MusicXML\\Chant.musicxml")
         {
             InitializeComponent();
             GenerateNoteButtons();

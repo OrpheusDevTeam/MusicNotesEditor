@@ -38,14 +38,14 @@ namespace MusicNotesEditor.Views
             nav.Navigate(new MusicEditorPage());
         }
 
-        private string SelectFile(object sender, RoutedEventArgs e)
+        private string SelectXMLs(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
 
             // Configure the dialog
             openFileDialog.Title = "Select a file";
             openFileDialog.Filter = "MusicXML files (*.musicxml)|*.musicxml|XML files (*.xml)|*xml|All files (*.*)|*.*";
-            openFileDialog.FilterIndex = 2;
+            openFileDialog.FilterIndex = 1;
             openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             openFileDialog.Multiselect = false;
 
@@ -63,7 +63,7 @@ namespace MusicNotesEditor.Views
 
         private void SelectMusicXMLFile(object sender, RoutedEventArgs e)
         {
-            string filepath = SelectFile(sender, e);
+            string filepath = SelectXMLs(sender, e);
             DataContext = viewModel;
             try
             {
@@ -81,6 +81,38 @@ namespace MusicNotesEditor.Views
             {
                 MessageBox.Show("There was an error loading the chosen file, please ensure the format and content are follow the correct MusicXML standard.", "File import error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void SelectImageFiles(object sender, RoutedEventArgs e)
+        {
+            var fileArrangerWindow = new FileArrangerWindow();
+            fileArrangerWindow.Owner = Application.Current.MainWindow;
+
+            bool? result = fileArrangerWindow.ShowDialog();
+
+            if (result == true && fileArrangerWindow.SelectedFiles?.Any() == true)
+            {
+                string[] orderedFiles = fileArrangerWindow.SelectedFiles;
+                ProcessOrderedFiles(orderedFiles);
+            }
+        }
+
+        private void ProcessOrderedFiles(string[] orderedFiles)
+        {
+            DataContext = viewModel;
+
+            // Here you can add your specific processing logic
+            // For example, you might want to navigate to a processing page:
+            // NavigationService.Navigate(new ImageToMusicXmlPage(orderedFiles));
+
+            MessageBox.Show($"Successfully arranged {orderedFiles.Length} files!\n\n" +
+                           "Files will be processed in this order:\n" +
+                           string.Join("\n", orderedFiles.Select((f, i) => $"{i + 1}. {System.IO.Path.GetFileName(f)}")),
+                           "Files Ready for Processing",
+                           MessageBoxButton.OK, MessageBoxImage.Information);
+
+            NavigationService nav = NavigationService.GetNavigationService(this);
+            nav.Navigate(new MusicEditorPage());
         }
     }
 
