@@ -14,24 +14,36 @@
             FontSize="72"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"/>
-        
+
         <Button 
             Name="goToMusicEditorButton"
             Click="GoToMusicEditorPage" 
             VerticalAlignment="Center"
-            HorizontalAlignment="Left"
-            Margin="100"
+            HorizontalAlignment="Center"
+            Margin="0,-50,0,0"
             Width="200"
             Height="40">
             Go to Music Editor
         </Button>
 
         <Button 
+            Name="loadImagesButton"
+            Click="SelectImageFiles" 
+            VerticalAlignment="Center"
+            HorizontalAlignment="Center"
+            Margin="0,100,0,0"
+            Width="200"
+            Height="40">
+            Select Image Files to Load
+        </Button>
+
+
+        <Button 
             Name="loadMusicXMLButton"
             Click="SelectMusicXMLFile" 
             VerticalAlignment="Center"
-            HorizontalAlignment="Right"
-            Margin="100"
+            HorizontalAlignment="Center"
+            Margin="0,250,0,0"
             Width="200"
             Height="40">
             Select MusicXML File to Load
