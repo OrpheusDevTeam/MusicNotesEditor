@@ -13,7 +13,7 @@ using MusicNotesEditor.Views;
 using static System.Formats.Asn1.AsnWriter;
 namespace MusicNotesEditor.ViewModels
 {
-    class MainMenuViewModel : ViewModel
+    class FileArrangerViewModel : ViewModel
     {
         public void TestData(string filepath)
         {

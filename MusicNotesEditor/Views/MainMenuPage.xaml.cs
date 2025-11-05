@@ -25,7 +25,7 @@ namespace MusicNotesEditor.Views
     public partial class MainMenuPage : Page
     {
 
-        private readonly MainMenuViewModel viewModel = new MainMenuViewModel();
+        private readonly FileArrangerViewModel viewModel = new FileArrangerViewModel();
 
         public MainMenuPage()
         {
@@ -85,34 +85,7 @@ namespace MusicNotesEditor.Views
 
         private void SelectImageFiles(object sender, RoutedEventArgs e)
         {
-            var fileArrangerWindow = new FileArrangerWindow();
-            fileArrangerWindow.Owner = Application.Current.MainWindow;
-
-            bool? result = fileArrangerWindow.ShowDialog();
-
-            if (result == true && fileArrangerWindow.SelectedFiles?.Any() == true)
-            {
-                string[] orderedFiles = fileArrangerWindow.SelectedFiles;
-                ProcessOrderedFiles(orderedFiles);
-            }
-        }
-
-        private void ProcessOrderedFiles(string[] orderedFiles)
-        {
-            DataContext = viewModel;
-
-            // Here you can add your specific processing logic
-            // For example, you might want to navigate to a processing page:
-            // NavigationService.Navigate(new ImageToMusicXmlPage(orderedFiles));
-
-            //MessageBox.Show($"Successfully arranged {orderedFiles.Length} files!\n\n" +
-            //               "Files will be processed in this order:\n" +
-            //               string.Join("\n", orderedFiles.Select((f, i) => $"{i + 1}. {System.IO.Path.GetFileName(f)}")),
-            //               "Files Ready for Processing",
-            //               MessageBoxButton.OK, MessageBoxImage.Information);
-
-            NavigationService nav = NavigationService.GetNavigationService(this);
-            nav.Navigate(new MusicEditorPage());
+            NavigationService.Navigate(new FileArrangerPage());
         }
     }
 
