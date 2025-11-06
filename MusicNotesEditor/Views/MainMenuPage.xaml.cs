@@ -87,6 +87,11 @@ namespace MusicNotesEditor.Views
         {
             NavigationService.Navigate(new FileArrangerPage());
         }
+
+        private void OpenSettings(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new FileArrangerPage());
+        }
     }
 
 }

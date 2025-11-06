@@ -242,9 +242,11 @@ namespace MusicNotesEditor.Views
                 // Process files with Python
                 string pythonResult = await ProcessFilesWithPythonAsync(orderedFiles, progress);
 
+
+                Console.WriteLine(pythonResult);
                 // Python processing successful, navigate to Music Editor
                 // You might want to pass the pythonResult to the MusicEditorPage
-                NavigationService.Navigate(new MusicEditorPage());
+                NavigationService.Navigate(new MusicEditorPage(pythonResult));
             }
             catch (Exception ex)
             {
@@ -268,6 +270,7 @@ namespace MusicNotesEditor.Views
                 try
                 {
                     progress?.Report("Starting Python script...");
+                    Console.WriteLine("Starting Python script...");
 
                     string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
 
@@ -294,6 +297,7 @@ namespace MusicNotesEditor.Views
                             {
                                 outputBuilder.AppendLine(e.Data);
                                 progress?.Report($"Processing: {e.Data}");
+                                Console.WriteLine($"Processing: {e.Data}");
                             }
                         };
 
@@ -303,6 +307,7 @@ namespace MusicNotesEditor.Views
                         };
 
                         progress?.Report("Executing Python script...");
+                        Console.WriteLine("Executing Python script...");
                         process.Start();
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
@@ -322,6 +327,7 @@ namespace MusicNotesEditor.Views
                         }
 
                         progress?.Report("Python script completed successfully");
+                        Console.WriteLine("Python script completed successfully");
                         return outputBuilder.ToString();
                     }
                 }

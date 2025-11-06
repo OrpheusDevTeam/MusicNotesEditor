@@ -4,50 +4,124 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:MusicNotesEditor.Views"
+      xmlns:svg="http://sharpvectors.codeplex.com/svgc/"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="MainMenuPage">
 
-    <Grid>
-        <TextBlock Name="title"
-            Text="ORPHEUS"
-            FontSize="72"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"/>
+    <Grid Background="#FF131020">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.2*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="0.2*"/>
+        </Grid.ColumnDefinitions>
 
-        <Button 
-            Name="goToMusicEditorButton"
-            Click="GoToMusicEditorPage" 
-            VerticalAlignment="Center"
-            HorizontalAlignment="Center"
-            Margin="0,-50,0,0"
-            Width="200"
-            Height="40">
-            Go to Music Editor
-        </Button>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="0.15*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="0.15*"/>
+        </Grid.RowDefinitions>
 
-        <Button 
-            Name="loadImagesButton"
-            Click="SelectImageFiles" 
-            VerticalAlignment="Center"
-            HorizontalAlignment="Center"
-            Margin="0,100,0,0"
-            Width="200"
-            Height="40">
-            Select Image Files to Load
-        </Button>
+        <Border Grid.Column="1" Grid.Row="1" BorderBrush="#FF2f2e3a" BorderThickness="3" CornerRadius="8">
 
+            <Grid Background="#131020">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="0.3*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="0.15*"/>
+                </Grid.RowDefinitions>
 
-        <Button 
-            Name="loadMusicXMLButton"
-            Click="SelectMusicXMLFile" 
-            VerticalAlignment="Center"
-            HorizontalAlignment="Center"
-            Margin="0,250,0,0"
-            Width="200"
-            Height="40">
-            Select MusicXML File to Load
-        </Button>
+                <TextBlock 
+                    Grid.Row="0"  
+                    FontSize="50" 
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="White">
+                    ORPHEUS
+                </TextBlock>
 
+                <Grid Grid.Row="1" Background="#131020">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Column="0"
+                        Grid.Row="0"
+                        Margin="15"
+                        BorderBrush="#FF292834"
+                        BorderThickness="2"
+                        CornerRadius="8">
+                        <Button
+                            Name="goToMusicEditorButton"
+                            Click="GoToMusicEditorPage"
+                            Background="#FF1b182b"
+                            Width="auto"
+                            Height="auto"
+                            Margin="0">         
+                            Create a New Project
+                        </Button>
+                    </Border>
+
+                    <Border Grid.Column="0"
+                        Grid.Row="1"
+                        Margin="15"
+                        BorderBrush="#FF292834"
+                        BorderThickness="2"
+                        CornerRadius="8">
+                        <Button
+                            Name="loadImagesButton"
+                            Click="SelectImageFiles"
+                            Background="#FF1b182b"
+                            Width="auto"
+                            Height="auto"
+                            Margin="0">
+                            Generate from Images / PDFs (OMR)
+                        </Button>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                        Grid.Row="0"
+                        Margin="15"
+                        BorderBrush="#FF292834"
+                        BorderThickness="2"
+                        CornerRadius="8">
+                        <Button
+                            Name="loadMusicXMLButton"
+                            Click="SelectMusicXMLFile"
+                            Background="#FF1b182b"
+                            Width="auto"
+                            Height="auto"
+                            Margin="0">
+                            Open Project
+                        </Button>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                        Grid.Row="1"
+                        Margin="15"
+                        BorderBrush="#FF292834"
+                        BorderThickness="2"
+                        CornerRadius="8">
+                        <Button
+                            Name="settingsButton"
+                            Click="OpenSettings" 
+                            Background="#FF1b182b"
+                            Width="auto"
+                            Height="auto"
+                            Margin="0">
+                            Settings
+                        </Button>
+                    </Border>
+                </Grid>
+
+            </Grid>
+            
+        </Border>
     </Grid>
 </Page>
