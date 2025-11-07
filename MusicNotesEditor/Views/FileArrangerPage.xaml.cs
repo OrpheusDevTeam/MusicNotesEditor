@@ -243,7 +243,7 @@ namespace MusicNotesEditor.Views
                 string pythonResult = await ProcessFilesWithPythonAsync(orderedFiles, progress);
 
 
-                Console.WriteLine(pythonResult);
+                
                 // Python processing successful, navigate to Music Editor
                 // You might want to pass the pythonResult to the MusicEditorPage
                 NavigationService.Navigate(new MusicEditorPage(pythonResult));
