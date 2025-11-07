@@ -66,8 +66,31 @@
                             Background="#FF1b182b"
                             Width="auto"
                             Height="auto"
-                            Margin="0">         
-                            Create a New Project
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            Margin="0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Image 
+                                    Grid.Column="0" 
+                                    Source="/Assets/music.png">
+                                </Image>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0">
+                                        Create a New Project
+                                    </TextBlock>
+                                </Grid>
+                            </Grid>
                         </Button>
                     </Border>
 

@@ -15,6 +15,19 @@ namespace MusicNotesEditor
     public partial class MainWindow : Window
     {
         private const int WM_NCCALCSIZE = 0x0083;
+        private const int WM_NCHITTEST = 0x0084;
+        private const int HTCLIENT = 1;
+        private const int HTCAPTION = 2;
+        private const int HTLEFT = 10;
+        private const int HTRIGHT = 11;
+        private const int HTTOP = 12;
+        private const int HTTOPLEFT = 13;
+        private const int HTTOPRIGHT = 14;
+        private const int HTBOTTOM = 15;
+        private const int HTBOTTOMLEFT = 16;
+        private const int HTBOTTOMRIGHT = 17;
+
+        private const int RESIZE_MARGIN = 6;
 
         public MainWindow()
         {
@@ -34,7 +47,7 @@ namespace MusicNotesEditor
         {
             base.OnSourceInitialized(e);
 
-            // Remove all non-client area (borders)
+            // Enable custom window chrome handling
             var hwndSource = PresentationSource.FromVisual(this) as HwndSource;
             if (hwndSource != null)
             {
@@ -58,18 +71,72 @@ namespace MusicNotesEditor
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == WM_NCCALCSIZE && wParam.ToInt32() == 1)
+            switch (msg)
             {
-                // Remove all non-client area (borders)
-                handled = true;
-                return IntPtr.Zero;
+                case WM_NCCALCSIZE:
+                    // Remove standard title bar but keep resize borders
+                    if (wParam.ToInt32() == 1)
+                    {
+                        handled = true;
+                        return IntPtr.Zero;
+                    }
+                    break;
+
+                case WM_NCHITTEST:
+                    // Custom hit testing for resize and drag
+                    var result = HitTestNCA(hwnd, wParam, lParam);
+                    if (result != IntPtr.Zero)
+                    {
+                        handled = true;
+                        return result;
+                    }
+                    break;
             }
             return IntPtr.Zero;
         }
 
+        private IntPtr HitTestNCA(IntPtr hwnd, IntPtr wParam, IntPtr lParam)
+        {
+            // Get the point coordinates
+            var screenPoint = new Point((int)lParam & 0xFFFF, (int)lParam >> 16);
+
+            // Convert to window-relative coordinates
+            var windowPoint = PointFromScreen(screenPoint);
+
+            // Define resize margins
+            var resizeLeft = windowPoint.X <= RESIZE_MARGIN;
+            var resizeRight = windowPoint.X >= ActualWidth - RESIZE_MARGIN;
+            var resizeTop = windowPoint.Y <= RESIZE_MARGIN;
+            var resizeBottom = windowPoint.Y >= ActualHeight - RESIZE_MARGIN;
+
+            // Determine which resize cursor to show
+            if (resizeTop && resizeLeft) return new IntPtr(HTTOPLEFT);
+            if (resizeTop && resizeRight) return new IntPtr(HTTOPRIGHT);
+            if (resizeBottom && resizeLeft) return new IntPtr(HTBOTTOMLEFT);
+            if (resizeBottom && resizeRight) return new IntPtr(HTBOTTOMRIGHT);
+            if (resizeLeft) return new IntPtr(HTLEFT);
+            if (resizeRight) return new IntPtr(HTRIGHT);
+            if (resizeTop) return new IntPtr(HTTOP);
+            if (resizeBottom) return new IntPtr(HTBOTTOM);
+
+            // Check if click is in title bar area for dragging
+            var titleBarRect = new Rect(0, 0, ActualWidth, 32);
+            if (titleBarRect.Contains(windowPoint))
+            {
+                // Exclude the window buttons area from dragging
+                var buttonsRect = new Rect(ActualWidth - 105, 0, 105, 32); // 3 buttons * 35 width each
+                if (!buttonsRect.Contains(windowPoint))
+                {
+                    return new IntPtr(HTCAPTION);
+                }
+            }
+
+            return new IntPtr(HTCLIENT);
+        }
+
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            if (IsMaximized())
+            if (WindowState == WindowState.Maximized)
             {
                 MaximizeBtn.Content = "❑";
                 MaximizeBtn.ToolTip = "Restore Down";
@@ -95,9 +162,7 @@ namespace MusicNotesEditor
 
         private bool IsMaximized()
         {
-            return this.WindowState == WindowState.Maximized ||
-                   (Math.Abs(this.Width - SystemParameters.WorkArea.Width) < 1 &&
-                    Math.Abs(this.Height - SystemParameters.WorkArea.Height) < 1);
+            return WindowState == WindowState.Maximized;
         }
 
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
@@ -110,38 +175,56 @@ namespace MusicNotesEditor
                 }
                 else
                 {
-                    this.DragMove();
+                    // For maximized windows, dragging will restore and move
+                    if (WindowState == WindowState.Maximized)
+                    {
+                        // Calculate the position to restore to based on mouse position
+                        var screenPoint = PointToScreen(e.GetPosition(this));
+
+                        // Temporarily set window to normal to calculate position
+                        WindowState = WindowState.Normal;
+
+                        // Calculate new window position (centered on mouse X, top at 0)
+                        var newWidth = 900; // Your default width
+                        Left = Math.Max(0, screenPoint.X - (newWidth / 2));
+                        Top = 0;
+
+                        // Now start the drag
+                        this.DragMove();
+                    }
+                    else
+                    {
+                        this.DragMove();
+                    }
                 }
             }
         }
 
         private void ToggleMaximize()
         {
-            if (IsMaximized())
+            if (WindowState == WindowState.Maximized)
             {
-                // Restore to normal size
-                this.WindowState = WindowState.Normal;
-                this.Width = 900;
-                this.Height = 600;
-                this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                WindowState = WindowState.Normal;
+                // Restore to your preferred default size
+                Width = 900;
+                Height = 600;
                 CenterWindow();
             }
             else
             {
-                // Maximize to work area
-                this.WindowState = WindowState.Maximized;
+                WindowState = WindowState.Maximized;
             }
         }
 
         private void CenterWindow()
         {
-            this.Left = (SystemParameters.WorkArea.Width - this.Width) / 2;
-            this.Top = (SystemParameters.WorkArea.Height - this.Height) / 2;
+            Left = (SystemParameters.WorkArea.Width - Width) / 2;
+            Top = (SystemParameters.WorkArea.Height - Height) / 2;
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            this.WindowState = WindowState.Minimized;
+            WindowState = WindowState.Minimized;
         }
 
         private void MaximizeButton_Click(object sender, RoutedEventArgs e)
@@ -151,7 +234,7 @@ namespace MusicNotesEditor
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            Close();
         }
 
         // Windows API for removing borders and rounded corners
