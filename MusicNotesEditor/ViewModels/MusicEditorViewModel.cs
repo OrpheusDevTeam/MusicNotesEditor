@@ -9,6 +9,10 @@ using Manufaktura.Controls.Primitives;
 using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
+using MusicNotesEditor.Helpers;
+using MusicNotesEditor.Models;
+using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 using System.Windows;
 using System.Xml;
 using System.Xml.Linq;
@@ -17,9 +21,12 @@ namespace MusicNotesEditor.ViewModels
 {
     class MusicEditorViewModel : ViewModel
     {
-        private const int MAX_NUMBER_OF_STAVES = 10;
+        private const int MAX_NUMBER_OF_STAVES = 5;
         private const int MAX_INITIAL_STAVE_LINES = 3;
+        private const int TEMP_NOTE_OFFSET = 6;
 
+
+        public MusicalSymbol? SelectedSymbol = null;
         public RhythmicDuration? CurrentNote = null;
         public double NoteViewerContentWidth;
         public double NoteViewerContentHeight;
@@ -80,7 +87,7 @@ namespace MusicNotesEditor.ViewModels
                 // Fill up stave line 
                 while (true)
                 {
-                    Data.Staves[i].Add(new Rest(RhythmicDuration.Whole));
+                    Data.Staves[i].Add(new CorrectRest(RhythmicDuration.Whole));
                     Data.Staves[i].AddBarline(BarlineStyle.Regular);
                     var barlines = Data.Staves[i].Elements.OfType<Barline>();
                     double lastBarlineXPosition = barlines.Last().ActualRenderedBounds.SE.X;
@@ -112,10 +119,7 @@ namespace MusicNotesEditor.ViewModels
         {
             var parser = new MusicXmlParser();
             var score = parser.Parse(XDocument.Load(filepath));
-            
             Data = score;
-            FixWidth();
-
         }
 
         public void PlayScore()
@@ -124,34 +128,356 @@ namespace MusicNotesEditor.ViewModels
             player.Play();
         }
 
-        public void FixWidth()
+
+        public void AddNote(NoteViewer noteViewer, double clickXPos, double clickYPos)
+        {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            var staffLineIndex = ScoreDataExtractor.GetStaffLineIndex(Data, clickYPos) + 1;
+
+            if (CurrentNote == null || staffLineIndex == 0)
+            {
+                return;
+            }
+
+            var currentMeasure = GetMeasure(clickXPos, clickYPos);
+            Console.WriteLine("\nMeasuring: ");
+            Console.WriteLine(currentMeasure);
+            Console.WriteLine($"\nCLICK: \n\tX: {clickXPos} \n\tY: {clickYPos} LINE INDEX: {staffLineIndex}");
+            if (currentMeasure == null)
+            {
+                return;
+            }
+
+            var staffElements = currentMeasure.Staff.Elements;
+            int currentMeasureStartIndex = -1;
+
+            // Get Start index of measure
+            for(int i = 0; i < staffElements.Count; i++)
+            {   
+                if(staffElements[i].Measure == currentMeasure)
+                {
+                    currentMeasureStartIndex = i;
+                    break;
+                }
+            }
+
+            int currentMeasureEndIndex = currentMeasureStartIndex + currentMeasure.Elements.Count() - 1;
+
+            // Replace rests with temporary notes
+            for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
+            {
+                var rest = staffElements[i] as CorrectRest;
+                if (rest != null)
+                {
+                    staffElements[i] = new TempNote(rest.Duration);
+                }
+            }
+
+            // Put empty print suggestion to force rerendering
+            staffElements.Add(new PrintSuggestion()
+            {
+                IsSystemBreak = false,
+                IsPageBreak = false,
+                IsBreakpointSet = false,
+                IsVisible = false,
+            });
+            staffElements.RemoveAt(staffElements.Count - 1);
+            
+            int elementOnLeftIndex = -1;
+            
+            for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
+            {
+                var element = staffElements[i];
+                Console.WriteLine($"Element: {element}");
+                Console.WriteLine($"\tMeasure: {element.Measure}");
+
+                var elementXPosition = HorizontalPosition(element);
+
+                if(element is TempNote)
+                {
+                    elementXPosition += TEMP_NOTE_OFFSET;
+                }
+
+                if (elementXPosition <= clickXPos)
+                {
+                    Console.WriteLine($"ElementXPOS: {elementXPosition}\tclickXPos: {clickXPos} Result:{elementXPosition <= clickXPos}");
+                    Console.WriteLine($"Lefty: {element}");
+                    elementOnLeftIndex = i;
+                }
+                else if (elementXPosition > clickXPos)
+                {
+                    break;
+                }
+            }
+
+            if(elementOnLeftIndex < 0)
+            {
+                elementOnLeftIndex = currentMeasureStartIndex - 1;
+            }
+            
+            var elementOnLeftXPosition = HorizontalPosition(
+                staffElements[elementOnLeftIndex]);
+
+            var elementOnRightXPosition = HorizontalPosition(
+                staffElements[elementOnLeftIndex + 1]);
+
+            bool isRightCloser = Math.Abs(elementOnLeftXPosition - clickXPos)
+                > Math.Abs(elementOnRightXPosition - clickXPos);
+
+            Proportion? timeInMetrum = null;
+            Clef? lastClef = null; 
+
+            // Get time signature
+            for (int i = 0; i < currentMeasureEndIndex; i++)
+            {
+                var element = staffElements[i];
+                if (element is TimeSignature metrum)
+                {
+                    timeInMetrum = metrum.NumberValue;
+                }
+                if(element is Clef clef)
+                {
+                    lastClef = clef;
+                }
+            }
+
+            var newNoteProportion = CurrentNote.Value.ToProportion();
+
+            // Stop if chosen note takes more space than measure
+            if(newNoteProportion > timeInMetrum)
+            {
+                // Add notification
+                return;
+            }
+
+            // Replace temporary notes with rests
+            for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
+            {
+                var tempNote = staffElements[i] as TempNote;
+                if (tempNote != null)
+                {
+                    staffElements[i] = new CorrectRest(tempNote.Duration);
+                }
+            }
+
+            Pitch pitch = PitchHelper.GetPitchFromIndex(staffLineIndex, lastClef);
+            staffElements.Insert(elementOnLeftIndex + 1, 
+                new TempNote(pitch, CurrentNote.Value));
+
+            // Remove stuff over metrum
+            Proportion excessProportion = newNoteProportion;
+            Proportion zeroProportion = new Proportion(0, 1);
+            int startingIndex = elementOnLeftIndex + 1;
+            int direction = Direction(isRightCloser);
+            int cursor = Math.Min(startingIndex + direction, staffElements.Count());
+            bool startOverridingNotes = false;
+            int notCorrectRestNeighboursCount = 0;
+
+            while (excessProportion > zeroProportion)
+            {
+                if(cursor >= staffElements.Count())
+                {
+                    direction = -1;
+                    cursor = staffElements.Count() - 1;
+                    notCorrectRestNeighboursCount++;
+                    continue;
+                }
+                else if (cursor < currentMeasureStartIndex)
+                {
+                    direction = 1;
+                    cursor = currentMeasureStartIndex;
+                    notCorrectRestNeighboursCount++;
+                    continue;
+                }
+                var element = staffElements[cursor];
+                
+                if (element is CorrectRest rest)
+                {
+                    if (rest.Duration.ToProportion() > excessProportion)
+                    {
+                        var proportionToFill = rest.Duration.ToProportion() - excessProportion;
+                        
+                        var currentDuration = DurationHelper.HalfDuration(rest.Duration);
+                        rest.Duration = currentDuration;
+                        proportionToFill -= currentDuration.ToProportion();
+
+                        while (proportionToFill != zeroProportion)
+                        {
+                            currentDuration = DurationHelper.HalfDuration(currentDuration);
+                            Console.WriteLine($"\tDuration: {currentDuration}");
+                            Console.WriteLine($"\tProportion: {proportionToFill}");
+
+                            if (currentDuration.ToProportion() > proportionToFill)
+                            {
+                                continue;
+                            }
+                            staffElements.Insert(cursor, new CorrectRest(currentDuration));
+                            proportionToFill -= currentDuration.ToProportion();
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Removed Element: {staffElements[cursor]}");
+                        staffElements.RemoveAt(cursor);
+                        excessProportion -= rest.Duration.ToProportion();
+                        cursor--;
+                    }
+                }
+                else if (element is TempNote tempNote)
+                {
+                }
+                else if (element is Note note)
+                {
+                    if (startOverridingNotes)
+                    {
+                        if (note.Duration.ToProportion() > excessProportion)
+                        {
+                            var proportionToFill = note.Duration.ToProportion() - excessProportion;
+                            
+                            var currentDuration = DurationHelper.HalfDuration(note.Duration);
+                            while(currentDuration.ToProportion() > proportionToFill)
+                            {
+                                currentDuration = DurationHelper.HalfDuration(currentDuration);
+                            }
+                            note.Duration = currentDuration;
+                            proportionToFill -= currentDuration.ToProportion();
+                
+                            while (proportionToFill != zeroProportion)
+                            {
+                                currentDuration = DurationHelper.HalfDuration(currentDuration);
+
+                                if (currentDuration.ToProportion() > proportionToFill)
+                                {
+                                    Console.WriteLine($"\tSkipping Duration: {currentDuration.ToProportion()}");
+                                    continue;
+                                }
+
+                                Console.WriteLine($"\tDuration: {currentDuration}");
+                                Console.WriteLine($"\tProportion: {proportionToFill}");
+                                staffElements.Insert(cursor, new Note(note.Pitch, currentDuration));
+                                proportionToFill -= currentDuration.ToProportion();
+                            }
+                            break;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Removed Element: {staffElements[cursor]}");
+                            staffElements.RemoveAt(cursor);
+                            excessProportion -= note.Duration.ToProportion();
+                            cursor--;
+                        }
+                    }
+                    else
+                    {
+                        direction *= -1;
+                        notCorrectRestNeighboursCount++;
+                    }
+                }
+                else if (element is Barline)
+                {
+                    direction *= -1;
+                    notCorrectRestNeighboursCount++;
+                }
+                else
+                {
+                    direction *= -1;
+                }
+                cursor += direction;
+                startOverridingNotes = notCorrectRestNeighboursCount > 1;
+            }
+
+
+            // Replace new note with note
+            for (int i = currentMeasureStartIndex; i < staffElements.Count(); i++)
+            {
+                var tempNote = staffElements[i] as TempNote;
+                if (tempNote != null)
+                {
+                    staffElements[i] = new Note(tempNote.Pitch, tempNote.Duration);
+                }
+            }
+
+            AdjustWidth();
+
+            stopwatch.Stop();
+            Console.WriteLine($"Execution Time: {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+        public int Direction(bool value)
+        {
+            return value ? 1 : -1;
+        }
+
+
+        public void AdjustWidth()
         {
             foreach (var staff in Data.Staves)
             {
-                // Remove all existing system breaks
+                // Remove all existing system breaks and replace rests with tempNotes
                 for (int i = staff.Elements.Count - 1; i >= 0; i--)
                 {
                     if (staff.Elements[i] is PrintSuggestion ps && ps.IsSystemBreak)
                         staff.Elements.RemoveAt(i);
+            
+                    var tempNote = staff.Elements[i] as CorrectRest;
+                    if (tempNote != null)
+                    {
+                        staff.Elements[i] = new TempNote(tempNote.Duration);
+                    }
                 }
+
+                int lastBarlineIndex = -1;
 
                 for (int i = 0; i < staff.Elements.Count; i++)
                 {
-                    if (staff.Elements[i] is not Barline barline)
-                        continue;
-
-                    var lastBarlineXPosition = barline.ActualRenderedBounds.SE.X;
-                    Console.WriteLine($"Barline[{i}] X={lastBarlineXPosition}");
-                    if (lastBarlineXPosition > NoteViewerContentWidth && i > 0)
+                    var element = staff.Elements[i];
+                    var previousBarlineIndex = lastBarlineIndex;
+                    if(element is Barline)
                     {
-                        AddNewLine(staff, i - 1);
+                        lastBarlineIndex = i;
+                    }
+
+                    var elementXPosition = element.ActualRenderedBounds.SE.X;
+                    //Console.WriteLine($"Barline[{i}] X={lastBarlineXPosition}");
+                    if (elementXPosition > NoteViewerContentWidth && i > 0)
+                    {
+                        Console.WriteLine($"I: {i} \tcURENT: {previousBarlineIndex} at {staff.Elements[previousBarlineIndex]}");
+                        AddNewLine(staff, previousBarlineIndex+1);
                         i++;
+                    }
+                }
+
+                // Replace back TempNotes with rests
+                for (int i = 0; i < staff.Elements.Count; i++)
+                {
+                    var tempNote = staff.Elements[i] as TempNote;
+                    if (tempNote != null)
+                    {
+                        staff.Elements[i] = new CorrectRest(tempNote.Duration);
                     }
                 }
 
                 FixMeasures(staff);
             }
 
+            //int systemCount = 0;
+            //foreach(var staff in Data.Staves)
+            //{
+            //    var lastMeasure = staff.Measures.Last();
+            //    var lastValidSystem = lastMeasure.Staff.Score.Systems.IndexOf(lastMeasure.System);
+            //    if(lastValidSystem > systemCount)
+            //    {
+            //        systemCount = lastValidSystem;
+            //    }
+            //}
+
+            //for(int i = Data.Systems.Count - 1; i > systemCount; i--)
+            //{
+            //    Data.Systems.RemoveAt(i);
+            //}
         }
 
 
@@ -170,7 +496,68 @@ namespace MusicNotesEditor.ViewModels
             }
         }
 
-        public static void AddNewLine(Staff staff)
+
+        private Measure? GetMeasure(double clickXPos, double clickYPos)
+        {
+            foreach (var staff in Data.Staves)
+            {
+                var barlines = staff.Elements.OfType<Barline>().ToList();
+
+                for (int i = 0; i < barlines.Count; i++)
+                {
+                    var firstBarline = barlines[i];
+                    var secondBarline = (i + 1 < barlines.Count) ? barlines[i + 1] : null;
+
+                    var threshold = int.Parse(App.Configuration["snappingThreshold"], 0);
+
+                    var leftX = firstBarline.ActualRenderedBounds.SE.X;
+                    var bottomY = firstBarline.ActualRenderedBounds.NE.Y - threshold;
+                    var topY = firstBarline.ActualRenderedBounds.SE.Y + threshold;
+
+                    if (secondBarline == null)
+                    {
+                        if (clickYPos >= bottomY && clickYPos <= topY && clickXPos >= leftX)
+                        {
+                            return staff.Measures[i+1];
+                        }
+
+                        continue;
+                    }
+
+                    var rightX = secondBarline.ActualRenderedBounds.SE.X;
+
+                    var secondBottomY = secondBarline.ActualRenderedBounds.NE.Y - threshold;
+
+                    if (secondBottomY != bottomY)
+                    {
+                        bottomY = secondBottomY;
+                        topY = secondBarline.ActualRenderedBounds.SE.Y + threshold;
+                        leftX = 0;
+                    }
+
+                    if (clickYPos >= bottomY && clickYPos <= topY &&
+                        clickXPos >= leftX && clickXPos <= rightX)
+                    {
+
+                        return staff.Measures[i+1];
+                    }
+                }
+            }
+
+            Console.WriteLine("❌ Click did not hit any measure");
+            return null;
+        }
+
+        public static double HorizontalPosition(MusicalSymbol element)
+        {
+            var elementMostLeftPosition = element.ActualRenderedBounds.SW.X;
+            var elementMostRightPosition = element.ActualRenderedBounds.SE.X;
+
+            return (elementMostLeftPosition + elementMostRightPosition) / 2;
+        }
+
+
+        private static void AddNewLine(Staff staff)
         {
             
             var lineBreak = new PrintSuggestion() { IsSystemBreak = true };
@@ -178,7 +565,7 @@ namespace MusicNotesEditor.ViewModels
         }
 
 
-        public static void AddNewLine(Staff staff, int index)
+        private static void AddNewLine(Staff staff, int index)
         {
             
             var lineBreak = new PrintSuggestion() { IsSystemBreak = true };
@@ -204,6 +591,8 @@ namespace MusicNotesEditor.ViewModels
                     currentMeasure.System = system;
 
                 currentMeasure.Elements.Add(e);
+
+                // Ugly reflection trick but needed to work
                 var property = typeof(MusicalSymbol).GetProperty("Measure",
                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
                 property.SetValue(e, currentMeasure);
@@ -231,7 +620,6 @@ namespace MusicNotesEditor.ViewModels
             if (staff.Score == null || staff.Score.Systems == null || staff.Score.Systems.Count == 0)
                 return null;
 
-            // Count all system breaks that happened before this element
             int breakCount = staff.Elements
                 .TakeWhile(e => e != element)
                 .Count(e => e is PrintSuggestion ps && ps.IsSystemBreak);
@@ -239,7 +627,6 @@ namespace MusicNotesEditor.ViewModels
             // If we have more breaks than systems, clamp
             breakCount = Math.Min(breakCount, staff.Score.Systems.Count - 1);
 
-            // Return the corresponding system
             return staff.Score.Systems[breakCount];
         }
 

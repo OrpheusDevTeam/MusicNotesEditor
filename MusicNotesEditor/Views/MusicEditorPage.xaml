@@ -106,7 +106,7 @@
             Background="White"
             x:Name="noteViewer" 
             Margin="30"
-            Padding="100,120,15,20"
+            Padding="100,120,15,40"
             BorderThickness="1"
             BorderBrush="Black"
             IsMusicPaperMode="True"

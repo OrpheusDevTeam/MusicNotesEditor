@@ -1,6 +1,7 @@
 ﻿using Manufaktura.Controls.Model;
 using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
+using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
 using MusicNotesEditor.ViewModels;
 using System.Windows;
@@ -18,8 +19,8 @@ namespace MusicNotesEditor.Views
     /// </summary>
     public partial class MusicEditorPage : Page
     {
-        const int SNAPPING_THRESHOLD = 5;
 
+        private double noteViewerWidthPercentage = 0.6;
         private readonly MusicEditorViewModel viewModel = new MusicEditorViewModel();
         private readonly Canvas mainCanvas;
 
@@ -58,6 +59,7 @@ namespace MusicNotesEditor.Views
 
             mainGrid.SizeChanged += MainGrid_SizeChanged;
             noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
+            noteViewer.MouseLeftButtonDown += AddNote;
 
             mainCanvas = (Canvas)noteViewer.FindName("MainCanvas");
             noteViewer.MouseEnter += Canvas_MouseEnter;
@@ -80,7 +82,7 @@ namespace MusicNotesEditor.Views
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
             viewModel.LoadInitialTemplate();
-            viewModel.FixWidth();
+            viewModel.AdjustWidth();
         }
 
 
@@ -146,7 +148,7 @@ namespace MusicNotesEditor.Views
         {
             double containerWidth = mainGrid.ActualWidth;
 
-            noteViewer.Width = containerWidth * 0.5f;
+            noteViewer.Width = containerWidth * noteViewerWidthPercentage;
 
             noteViewer.Height = noteViewer.Width * 1.414;
         }
@@ -180,7 +182,10 @@ namespace MusicNotesEditor.Views
 
         private void AddNote(object sender, MouseButtonEventArgs e)
         {
-
+            var pos = e.GetPosition(mainCanvas);
+            viewModel.AddNote(noteViewer, pos.X, pos.Y);
+            Canvas_MouseLeave(null, null);
+            Canvas_MouseEnter(null, null);
         }
 
         private void Canvas_MouseEnter(object sender, MouseEventArgs e)
@@ -203,13 +208,13 @@ namespace MusicNotesEditor.Views
             var pos = e.GetPosition(mainCanvas); 
             Canvas.SetLeft(noteIndicator, pos.X - noteIndicator.ActualWidth / 2);
             
-            var staffLinesPosition = GetStaffLinesPositions(viewModel.Data);
+            var staffLinesPosition = ScoreDataExtractor.GetStaffLinesPositions(viewModel.Data);
             
             double closest = staffLinesPosition.OrderBy(v => Math.Abs(v - pos.Y)).First();
             double distanceToClosestLine = Math.Abs(closest - pos.Y);
 
             
-            if (distanceToClosestLine < SNAPPING_THRESHOLD )
+            if (distanceToClosestLine < int.Parse(App.Configuration["snappingThreshold"], 0) )
             {
                 Canvas.SetTop(noteIndicator, closest - noteIndicator.ActualHeight / 2);
             }
@@ -225,37 +230,10 @@ namespace MusicNotesEditor.Views
 
         }
 
-
-        private List<double> GetStaffLinesPositions(Score score)
-        {
-            var linesPositions = new List<double>();
-            var staffSystems = score.Systems;
-
-            foreach (StaffSystem system in  staffSystems)
-            {
-                foreach(var lines in system.LinePositions.Values)
-                {
-                    linesPositions.AddRange( AddValuesInBetween(lines) );
-                }
-            }
-
-            return linesPositions;
-        }
-
-        private double[] AddValuesInBetween(double[] values)
-        {
-            return values.SelectMany((v, i) => i < values.Length - 1
-                    ? new[] { v, (v + values[i + 1]) / 2.0 }
-                    : new[] { v })
-                .ToArray();
-        }
-
-
         // Function for printing debug information about note viewer
         // Runs when it's clicked. It will be messy. Delete after finishing note viewer.
         private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
         {
-
             var staves = viewModel.Data.Staves;
             var systems = viewModel.Data.Systems;
             var parts = viewModel.Data.Parts;
@@ -281,7 +259,6 @@ namespace MusicNotesEditor.Views
             Console.WriteLine($"Bounds2: {noteViewer.Width}");
             Console.WriteLine($"Bounds3: {NoteViewerContentWidth}");
 
-
             foreach (var staff in viewModel.Data.Staves)
             {
                 foreach (var measure in staff.Measures)
@@ -289,7 +266,6 @@ namespace MusicNotesEditor.Views
                     Console.WriteLine(measure.ToString());
                 }
             }
-
 
             if (noteViewer.SelectedElement != null)
             {
@@ -309,7 +285,7 @@ namespace MusicNotesEditor.Views
                 var elements = staves2[i].Elements;
                 for (int j = 0; j < elements.Count; j++)
                 {
-                    Console.WriteLine($"\tStave: {i + 1} Element: {j + 1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
+                    Console.WriteLine($"\tStave: {i + 1} Measure: {elements[j].Measure} Element: {j + 1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
                 }
             }
 
