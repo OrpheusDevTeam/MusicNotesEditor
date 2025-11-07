@@ -9,7 +9,10 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="MainMenuPage">
 
-    <Grid Background="#FF131020">
+    <Grid>
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/background.png"/>
+        </Grid.Background>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.2*"/>
             <ColumnDefinition Width="*"/>
@@ -24,7 +27,7 @@
 
         <Border Grid.Column="1" Grid.Row="1" BorderBrush="#FF2f2e3a" BorderThickness="3" CornerRadius="8">
 
-            <Grid Background="#131020">
+            <Grid Background="#FF131020">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="0.3*"/>
                     <RowDefinition Height="*"/>
@@ -53,7 +56,7 @@
 
                     <Border Grid.Column="0"
                         Grid.Row="0"
-                        Margin="15"
+                        Margin="30"
                         BorderBrush="#FF292834"
                         BorderThickness="2"
                         CornerRadius="8">
@@ -70,7 +73,7 @@
 
                     <Border Grid.Column="0"
                         Grid.Row="1"
-                        Margin="15"
+                        Margin="30"
                         BorderBrush="#FF292834"
                         BorderThickness="2"
                         CornerRadius="8">
@@ -87,7 +90,7 @@
 
                     <Border Grid.Column="1"
                         Grid.Row="0"
-                        Margin="15"
+                        Margin="30"
                         BorderBrush="#FF292834"
                         BorderThickness="2"
                         CornerRadius="8">
@@ -104,7 +107,7 @@
 
                     <Border Grid.Column="1"
                         Grid.Row="1"
-                        Margin="15"
+                        Margin="30"
                         BorderBrush="#FF292834"
                         BorderThickness="2"
                         CornerRadius="8">
