@@ -24,9 +24,7 @@ namespace MusicNotesEditor.Helpers
 
         public static Pitch GetPitchFromIndex(int index, Clef clef)
         {
-            if (index < 1)
-                throw new ArgumentOutOfRangeException(nameof(index), "Index must be >= 1");
-
+            
             // Map each clef to a *reference pitch* for its top staff line (index = 1)
             Pitch topLinePitch = clef switch
             {
@@ -50,7 +48,7 @@ namespace MusicNotesEditor.Helpers
                 throw new InvalidOperationException($"Reference pitch {topLinePitch} not found in NaturalPitches list.");
 
             // Each index step moves one diatonic note downward (top line → lower positions)
-            int targetIndex = startIndex - (index - 1);
+            int targetIndex = startIndex - index;
 
             // Clamp if we go out of range
             targetIndex = Math.Max(0, Math.Min(NaturalPitches.Count - 1, targetIndex));

@@ -24,6 +24,7 @@ namespace MusicNotesEditor.ViewModels
         private const int MAX_NUMBER_OF_STAVES = 5;
         private const int MAX_INITIAL_STAVE_LINES = 3;
         private const int TEMP_NOTE_OFFSET = 6;
+        private const int NUMBER_OF_LINES_IN_STAFF = 5;
 
 
         public MusicalSymbol? SelectedSymbol = null;
@@ -56,7 +57,8 @@ namespace MusicNotesEditor.ViewModels
             }
 
             var score = new Score();
-         
+            score.DefaultPageSettings.DefaultStaffDistance = int.Parse(App.Configuration["staffDistance"], 0);
+            score.DefaultPageSettings.DefaultSystemDistance = int.Parse(App.Configuration["additionalSystemDistance"], 0);
             for (int i = 0; i < numberOfParts; i++)
             {
                 score.AddStaff(Clef.Treble, TimeSignature.CommonTime, Step.C, MajorAndMinorScaleFlags.MajorSharp);
@@ -134,9 +136,11 @@ namespace MusicNotesEditor.ViewModels
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var staffLineIndex = ScoreDataExtractor.GetStaffLineIndex(Data, clickYPos) + 1;
+            // Additional Staff lines gives twice as many additional positions for notes to be in
+            var additionalPositions = int.Parse(App.Configuration["additionalStaffLines"], 0) * 2;
+            var staffLineIndex = ScoreDataExtractor.GetStaffLineIndex(Data, clickYPos, out var _) - additionalPositions;
 
-            if (CurrentNote == null || staffLineIndex == 0)
+            if (CurrentNote == null || staffLineIndex == -1 - additionalPositions)
             {
                 return;
             }
@@ -164,6 +168,8 @@ namespace MusicNotesEditor.ViewModels
             }
 
             int currentMeasureEndIndex = currentMeasureStartIndex + currentMeasure.Elements.Count() - 1;
+            if (currentMeasure.Number == currentMeasure.Staff.Measures.Last().Number)
+                currentMeasureEndIndex++;
 
             // Replace rests with temporary notes
             for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
@@ -216,15 +222,21 @@ namespace MusicNotesEditor.ViewModels
             {
                 elementOnLeftIndex = currentMeasureStartIndex - 1;
             }
-            
-            var elementOnLeftXPosition = HorizontalPosition(
-                staffElements[elementOnLeftIndex]);
 
-            var elementOnRightXPosition = HorizontalPosition(
+            bool isRightCloser = false;
+
+            if(elementOnLeftIndex + 1 < staffElements.Count)
+            {
+
+                var elementOnLeftXPosition = HorizontalPosition(
+                    staffElements[elementOnLeftIndex]);
+
+                var elementOnRightXPosition = HorizontalPosition(
                 staffElements[elementOnLeftIndex + 1]);
 
-            bool isRightCloser = Math.Abs(elementOnLeftXPosition - clickXPos)
-                > Math.Abs(elementOnRightXPosition - clickXPos);
+                isRightCloser = Math.Abs(elementOnLeftXPosition - clickXPos)
+                    > Math.Abs(elementOnRightXPosition - clickXPos);
+            }
 
             Proportion? timeInMetrum = null;
             Clef? lastClef = null; 
@@ -265,7 +277,7 @@ namespace MusicNotesEditor.ViewModels
             Pitch pitch = PitchHelper.GetPitchFromIndex(staffLineIndex, lastClef);
             staffElements.Insert(elementOnLeftIndex + 1, 
                 new TempNote(pitch, CurrentNote.Value));
-
+            
             // Remove stuff over metrum
             Proportion excessProportion = newNoteProportion;
             Proportion zeroProportion = new Proportion(0, 1);
@@ -511,11 +523,30 @@ namespace MusicNotesEditor.ViewModels
                     var threshold = int.Parse(App.Configuration["snappingThreshold"], 0);
 
                     var leftX = firstBarline.ActualRenderedBounds.SE.X;
+                    
+                    var additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
+                    
                     var bottomY = firstBarline.ActualRenderedBounds.NE.Y - threshold;
                     var topY = firstBarline.ActualRenderedBounds.SE.Y + threshold;
+                    var height = topY - bottomY;
+
+                    
+                    double additionalStaffHeight = height * ((double)additionalStaffLines / NUMBER_OF_LINES_IN_STAFF);
+
+                    topY += additionalStaffHeight;
+                    bottomY -= additionalStaffHeight;
+
 
                     if (secondBarline == null)
                     {
+
+                        if (staff.Measures[i+1].System != staff.Measures[i].System)
+                        {
+                            bottomY = staff.Measures[i + 1].System.LinePositions[1].Last() - threshold - additionalStaffHeight;
+                            topY = staff.Measures[i + 1].System.LinePositions[1].Last() + threshold + additionalStaffHeight;
+                            leftX = 0;
+                        }
+
                         if (clickYPos >= bottomY && clickYPos <= topY && clickXPos >= leftX)
                         {
                             return staff.Measures[i+1];
@@ -526,19 +557,18 @@ namespace MusicNotesEditor.ViewModels
 
                     var rightX = secondBarline.ActualRenderedBounds.SE.X;
 
-                    var secondBottomY = secondBarline.ActualRenderedBounds.NE.Y - threshold;
+                    var secondBottomY = secondBarline.ActualRenderedBounds.NE.Y - threshold - additionalStaffHeight;
 
                     if (secondBottomY != bottomY)
                     {
                         bottomY = secondBottomY;
-                        topY = secondBarline.ActualRenderedBounds.SE.Y + threshold;
+                        topY = secondBarline.ActualRenderedBounds.SE.Y + threshold + additionalStaffHeight;
                         leftX = 0;
                     }
 
                     if (clickYPos >= bottomY && clickYPos <= topY &&
                         clickXPos >= leftX && clickXPos <= rightX)
                     {
-
                         return staff.Measures[i+1];
                     }
                 }
@@ -615,7 +645,7 @@ namespace MusicNotesEditor.ViewModels
             RaiseStaffInvalidated(staff);
         }
 
-        protected static StaffSystem GetSystemForElement(Staff staff, MusicalSymbol element)
+        private static StaffSystem GetSystemForElement(Staff staff, MusicalSymbol element)
         {
             if (staff.Score == null || staff.Score.Systems == null || staff.Score.Systems.Count == 0)
                 return null;

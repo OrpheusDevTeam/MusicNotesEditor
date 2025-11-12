@@ -9,36 +9,22 @@ namespace MusicNotesEditor.Helpers
 {
     internal class ScoreDataExtractor
     {
-        public static List<double> GetStaffLinesPositions(Score score)
-        {
-            var linesPositions = new List<double>();
-            var staffSystems = score.Systems;
 
-            foreach (StaffSystem system in staffSystems)
-            {
-                if (system.LinePositions == null)
-                    continue;
-                foreach (var lines in system.LinePositions.Values)
-                {
-                    linesPositions.AddRange(AddValuesInBetween(lines));
-                }
-            }
-
-            return linesPositions;
-        }
-
-        public static int GetStaffLineIndex(Score score, double yPosition)
+        public static int GetStaffLineIndex(Score score, double yPosition, out List<double> linePositions)
         {
             foreach (StaffSystem system in score.Systems)
             {
                 if (system.LinePositions == null || system.LinePositions.Count == 0)
                     continue;
 
+                int additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
                 var lines = AddValuesInBetween(
-                    system.LinePositions.Values.SelectMany(v => v).ToArray()
+                    ExpandList(
+                        system.LinePositions.Values.SelectMany(v => v).ToList(), additionalStaffLines
+                    )
                 );
 
-                if (lines.Length == 0)
+                if (lines.Count() == 0)
                     continue;
 
                 int threshold = int.Parse(App.Configuration["snappingThreshold"], 0);
@@ -52,7 +38,7 @@ namespace MusicNotesEditor.Helpers
                 int closestIndex = 0;
                 double smallestDiff = double.MaxValue;
 
-                for (int i = 0; i < lines.Length; i++)
+                for (int i = 0; i < lines.Count(); i++)
                 {
                     double diff = Math.Abs(lines[i] - yPosition);
                     if (diff < smallestDiff)
@@ -61,19 +47,46 @@ namespace MusicNotesEditor.Helpers
                         closestIndex = i;
                     }
                 }
-
+                linePositions = lines;
                 return closestIndex;
             }
+            linePositions = [];
             return -1;
         }
 
 
-        public static double[] AddValuesInBetween(double[] values)
+        private static List<double> AddValuesInBetween(List<double> values)
         {
-            return values.SelectMany((v, i) => i < values.Length - 1
-                    ? new[] { v, (v + values[i + 1]) / 2.0 }
-                    : new[] { v })
-                .ToArray();
+            return values.SelectMany((v, i) => i < values.Count() - 1
+                    ? new List<double> { v, (v + values[i + 1]) / 2.0 }
+                    : new List<double> { v })
+                .ToList();
+        }
+
+
+        private static List<double> ExpandList(List<double> values, int n)
+        {
+            if (values == null || values.Count < 2)
+                throw new ArgumentException("List must contain at least two elements.");
+            if (n < 1)
+                throw new ArgumentException("n must be at least 1.");
+
+            // Compute average distance between neighbors
+            double avgGap = values.Zip(values.Skip(1), (a, b) => b - a).Average();
+
+            var expanded = new List<double>();
+
+            double first = values.First();
+            for (int i = n; i >= 1; i--)
+                expanded.Add(first - i * avgGap);
+
+            expanded.AddRange(values);
+
+            double last = values.Last();
+            for (int i = 1; i <= n; i++)
+                expanded.Add(last + i * avgGap);
+
+            return expanded;
         }
 
 

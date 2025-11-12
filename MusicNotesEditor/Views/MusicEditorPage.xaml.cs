@@ -25,6 +25,7 @@ namespace MusicNotesEditor.Views
         private readonly Canvas mainCanvas;
 
         TextBlock noteIndicator;
+        List<TextBlock> staffLineIndicators;
         public MusicEditorPage(string filepath = "")
         {
             InitializeComponent();
@@ -53,7 +54,7 @@ namespace MusicNotesEditor.Views
 
             /* 
              * Part of initializing data has to be moved to first render
-             * as it needs rendering bounds of barlines to put system breaks correctly
+             * as it needs rendering bounds  of barlines to put system breaks correctly
             */
             CompositionTarget.Rendering += InitializeDataOnFirstRender;
 
@@ -65,13 +66,28 @@ namespace MusicNotesEditor.Views
             noteViewer.MouseEnter += Canvas_MouseEnter;
             noteViewer.MouseLeave += Canvas_MouseLeave;
             noteViewer.MouseMove += Canvas_MouseMove;
-            
+
             noteIndicator = new TextBlock
             {
                 FontSize = 26,
                 Foreground = Brushes.Blue,
                 FontFamily = (FontFamily)FindResource("Polihymnia")
             };
+
+            int additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
+            staffLineIndicators = new List<TextBlock>(additionalStaffLines);
+
+            for (int i = 0; i < additionalStaffLines; i++)
+            {
+                var staffLineIndicatorTemplate = new TextBlock
+                {
+                    Text = "\u00E0",
+                    FontSize = 26,
+                    Foreground = Brushes.Blue,
+                    FontFamily = (FontFamily)FindResource("Polihymnia")
+                };
+                staffLineIndicators.Add(staffLineIndicatorTemplate);
+            }
 
         }
 
@@ -192,7 +208,11 @@ namespace MusicNotesEditor.Views
         {
             noteIndicator.Visibility = Visibility.Visible;
             mainCanvas.Children.Add(noteIndicator);
-
+            foreach(var staffLineIndicator in staffLineIndicators)
+            {
+                mainCanvas.Children.Add(staffLineIndicator);
+            }
+            
             noteIndicator.Text = NoteDuration.SmuflCharFromDuration(viewModel.CurrentNote);
         }
 
@@ -200,28 +220,67 @@ namespace MusicNotesEditor.Views
         {
             noteIndicator.Visibility = Visibility.Collapsed;
             mainCanvas.Children.Remove(noteIndicator);
+            foreach (var staffLineIndicator in staffLineIndicators)
+            {
+                mainCanvas.Children.Remove(staffLineIndicator);
+            }
+
+
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
-        {
+         {
             // Update letter position to follow the mouse
             var pos = e.GetPosition(mainCanvas); 
             Canvas.SetLeft(noteIndicator, pos.X - noteIndicator.ActualWidth / 2);
-            
-            var staffLinesPosition = ScoreDataExtractor.GetStaffLinesPositions(viewModel.Data);
-            
-            double closest = staffLinesPosition.OrderBy(v => Math.Abs(v - pos.Y)).First();
-            double distanceToClosestLine = Math.Abs(closest - pos.Y);
-
-            
-            if (distanceToClosestLine < int.Parse(App.Configuration["snappingThreshold"], 0) )
+            foreach(var staffLineIndicator in staffLineIndicators)
             {
-                Canvas.SetTop(noteIndicator, closest - noteIndicator.ActualHeight / 2);
+                Canvas.SetLeft(staffLineIndicator, pos.X - staffLineIndicator.ActualWidth / 2);
             }
-            else
+
+            var lineIndex = ScoreDataExtractor.GetStaffLineIndex(
+                viewModel.Data,
+                pos.Y,
+                out List<double> closestLinePositions);
+            
+            if(lineIndex == -1 || viewModel.CurrentNote == null)
             {
                 Canvas.SetTop(noteIndicator, pos.Y - noteIndicator.ActualHeight / 2);
+                foreach (var staffLineIndicator in staffLineIndicators)
+                {
+                    staffLineIndicator.Visibility = Visibility.Collapsed;
+                }
+                return;
             }
+
+            var closest = closestLinePositions[lineIndex];
+            double distanceToClosestLine = Math.Abs(closest - pos.Y);
+            
+            Canvas.SetTop(noteIndicator, closest - noteIndicator.ActualHeight / 2);
+            var additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
+
+            for (int i = 0; i < additionalStaffLines; i++)
+            {
+                staffLineIndicators[i].Visibility = Visibility.Visible;
+                if(lineIndex / 2 < additionalStaffLines)
+                {
+                    Canvas.SetTop(
+                        staffLineIndicators[i],
+                        closestLinePositions[i*2] - staffLineIndicators[i].ActualHeight / 3.75);
+                }
+                else if ( (closestLinePositions.Count() - lineIndex) / 2 <= additionalStaffLines)
+                {
+                    var additionalLineIndex = closestLinePositions.Count() - (i + 1) * 2;
+                    Canvas.SetTop(
+                        staffLineIndicators[i],
+                        closestLinePositions[additionalLineIndex] - staffLineIndicators[i].ActualHeight / 4.5);
+                }
+                else
+                {
+                    staffLineIndicators[i].Visibility = Visibility.Collapsed;
+                }
+            }
+            
         }
 
 
@@ -234,6 +293,16 @@ namespace MusicNotesEditor.Views
         // Runs when it's clicked. It will be messy. Delete after finishing note viewer.
         private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
         {
+
+            foreach(var ind in staffLineIndicators)
+            {
+                Console.WriteLine($"INDICATORXD: {ind} of text: {ind.Text} and size {ind.ActualWidth} and parent {ind.Parent}");
+
+            }
+
+            Console.WriteLine($"INDICATORXD: {noteIndicator} of text: {noteIndicator.Text} and size {noteIndicator.ActualWidth} and parent {noteIndicator.Parent}");
+
+
             var staves = viewModel.Data.Staves;
             var systems = viewModel.Data.Systems;
             var parts = viewModel.Data.Parts;
