@@ -43,7 +43,6 @@
                             <Setter Property="BorderThickness" Value="1"/>
                             <Setter Property="Margin" Value="4 0 0 0"/>
                             <Setter Property="Padding" Value="0 4 0 0"/>
-                            <Setter Property="Foreground" Value="White"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ToggleButton">
@@ -63,11 +62,13 @@
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="border" Property="Background" Value="{StaticResource BrushLight}"/>
                                                 <Setter TargetName="border" Property="BorderBrush" Value="Black"/>
+                                                <Setter Property="Foreground" Value="White"/>
                                             </Trigger>
                                             <!-- Selected / Checked -->
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter TargetName="border" Property="Background" Value="{StaticResource BrushPrimary}"/>
                                                 <Setter TargetName="border" Property="BorderBrush" Value="White"/>
+                                                <Setter Property="Foreground" Value="White"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -80,7 +81,7 @@
             </ToolBarTray>
 
             <TextBlock Grid.Column="1"
-               Text="My Music Editor"
+               Text="{Binding ScoreFileName}"
                Foreground="White"
                FontWeight="Bold"
                VerticalAlignment="Center"
@@ -91,7 +92,7 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center" 
                         >
-                <Button Content="  Play  " Margin="4" MinHeight="24"/>
+                <Button Name="playButton" Content="  Play  " Click="PlayButton_Click" Margin="4" MinHeight="24"/>
                 <Button Content="  Parts  " Margin="4" MinHeight="24"/>
                 <Button Content="  Settings  " Margin="4" MinHeight="24"/>
             </StackPanel>

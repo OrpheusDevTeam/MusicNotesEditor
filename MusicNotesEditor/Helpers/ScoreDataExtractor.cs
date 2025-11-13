@@ -17,7 +17,7 @@ namespace MusicNotesEditor.Helpers
                 if (system.LinePositions == null || system.LinePositions.Count == 0)
                     continue;
 
-                int additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
+                int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
                 var lines = AddValuesInBetween(
                     ExpandList(
                         system.LinePositions.Values.SelectMany(v => v).ToList(), additionalStaffLines
@@ -27,7 +27,7 @@ namespace MusicNotesEditor.Helpers
                 if (lines.Count() == 0)
                     continue;
 
-                int threshold = int.Parse(App.Configuration["snappingThreshold"], 0);
+                int threshold = App.Settings.SnappingThreshold.Value;
 
                 double minY = lines.Min() - threshold;
                 double maxY = lines.Max() + threshold;

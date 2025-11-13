@@ -13,6 +13,7 @@ using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Xml;
 using System.Xml.Linq;
@@ -22,7 +23,6 @@ namespace MusicNotesEditor.ViewModels
     class MusicEditorViewModel : ViewModel
     {
         private const int MAX_NUMBER_OF_STAVES = 5;
-        private const int MAX_INITIAL_STAVE_LINES = 3;
         private const int TEMP_NOTE_OFFSET = 6;
         private const int NUMBER_OF_LINES_IN_STAFF = 5;
 
@@ -33,6 +33,7 @@ namespace MusicNotesEditor.ViewModels
         public double NoteViewerContentHeight;
         public string XmlPath = "";
 
+        private string _scoreFileName;
         private ScorePlayer player;
         private Score data;
         public Score Data
@@ -40,6 +41,14 @@ namespace MusicNotesEditor.ViewModels
             get { return data; }
             set { data = value; OnPropertyChanged(() => Data); }
         }
+
+        public string ScoreFileName 
+        {
+            get { return _scoreFileName; }
+            set { _scoreFileName = value; OnPropertyChanged(() => ScoreFileName); }
+        }
+        
+
         public void LoadInitialData()
         {
             LoadInitialData(1);
@@ -57,8 +66,8 @@ namespace MusicNotesEditor.ViewModels
             }
 
             var score = new Score();
-            score.DefaultPageSettings.DefaultStaffDistance = int.Parse(App.Configuration["staffDistance"], 0);
-            score.DefaultPageSettings.DefaultSystemDistance = int.Parse(App.Configuration["additionalSystemDistance"], 0);
+            score.DefaultPageSettings.DefaultStaffDistance = App.Settings.StaffDistance;
+            score.DefaultPageSettings.DefaultSystemDistance = App.Settings.AdditionalStaffLines;
             for (int i = 0; i < numberOfParts; i++)
             {
                 score.AddStaff(Clef.Treble, TimeSignature.CommonTime, Step.C, MajorAndMinorScaleFlags.MajorSharp);
@@ -79,40 +88,35 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialTemplate(int numberOfParts)
         {
+            Console.WriteLine("initinidgafsasfas");
             if (!string.IsNullOrEmpty(XmlPath))
+            {
+                Console.WriteLine("Untitling");
+
+                ScoreFileName = Path.GetFileName(XmlPath);
                 return;
+            };
+            ScoreFileName = "Untitled Score";
+
+            Console.WriteLine($"initinidgafsasfasXDSADASSXXACSADSA: {ScoreFileName}");
+
+
+            int measuresInLine = Math.Max(
+                App.Settings.DefaultInitialMeasures.Value / numberOfParts,
+                App.Settings.MinimalInitialMeasurePerStaff.Value);
 
             for (int i = 0; i < numberOfParts; i++)
             {
-
-                int staffLinesCount = 1;
                 // Fill up stave line 
-                while (true)
+                for (int j = 0; j < measuresInLine; j++)
                 {
-                    Data.Staves[i].Add(new CorrectRest(RhythmicDuration.Whole));
-                    Data.Staves[i].AddBarline(BarlineStyle.Regular);
-                    var barlines = Data.Staves[i].Elements.OfType<Barline>();
-                    double lastBarlineXPosition = barlines.Last().ActualRenderedBounds.SE.X;
-                    
-                    // until it reaches width
-                    if (lastBarlineXPosition > NoteViewerContentWidth)
-                    {
-                        RemoveLastN(Data.Staves[i].Elements, 2);
-                        if(staffLinesCount < MAX_INITIAL_STAVE_LINES)
-                            AddNewLine(Data.Staves[i]);
-
-                     
-                        staffLinesCount++;
-                    }
-
-                    if (staffLinesCount > MAX_INITIAL_STAVE_LINES)
-                    {
-                        RemoveLastN(Data.Staves[i].Elements, 1);
-                        FixMeasures(Data.Staves[i]);
-                        break;
-                    }
+                    Data.Staves[i].Add(new CorrectRest(RhythmicDuration.Whole) );
+                    Data.Staves[i].AddBarline(BarlineStyle.Regular);                    
                 }
 
+                RemoveLastN(Data.Staves[i].Elements, 1);
+                Data.Staves[i].AddBarline(BarlineStyle.LightHeavy);
+                AdjustWidth();
             }
         }
 
@@ -126,7 +130,8 @@ namespace MusicNotesEditor.ViewModels
 
         public void PlayScore()
         {
-            player = player = new MidiTaskScorePlayer(Data);
+            player = new MidiTaskScorePlayer(Data);
+            player.Tempo = Tempo.Allegro;
             player.Play();
         }
 
@@ -137,7 +142,7 @@ namespace MusicNotesEditor.ViewModels
             stopwatch.Start();
 
             // Additional Staff lines gives twice as many additional positions for notes to be in
-            var additionalPositions = int.Parse(App.Configuration["additionalStaffLines"], 0) * 2;
+            var additionalPositions = App.Settings.AdditionalStaffLines.Value * 2;
             var staffLineIndex = ScoreDataExtractor.GetStaffLineIndex(Data, clickYPos, out var _) - additionalPositions;
 
             if (CurrentNote == null || staffLineIndex == -1 - additionalPositions)
@@ -149,7 +154,7 @@ namespace MusicNotesEditor.ViewModels
             Console.WriteLine("\nMeasuring: ");
             Console.WriteLine(currentMeasure);
             Console.WriteLine($"\nCLICK: \n\tX: {clickXPos} \n\tY: {clickYPos} LINE INDEX: {staffLineIndex}");
-            if (currentMeasure == null)
+            if (currentMeasure == null || currentMeasure.Elements.Count() == 1)
             {
                 return;
             }
@@ -515,16 +520,16 @@ namespace MusicNotesEditor.ViewModels
             {
                 var barlines = staff.Elements.OfType<Barline>().ToList();
 
-                for (int i = 0; i < barlines.Count; i++)
+                for (int i = 0; i < barlines.Count - 1; i++)
                 {
                     var firstBarline = barlines[i];
                     var secondBarline = (i + 1 < barlines.Count) ? barlines[i + 1] : null;
 
-                    var threshold = int.Parse(App.Configuration["snappingThreshold"], 0);
+                    var threshold = App.Settings.SnappingThreshold.Value;
 
                     var leftX = firstBarline.ActualRenderedBounds.SE.X;
-                    
-                    var additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
+
+                    var additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
                     
                     var bottomY = firstBarline.ActualRenderedBounds.NE.Y - threshold;
                     var topY = firstBarline.ActualRenderedBounds.SE.Y + threshold;

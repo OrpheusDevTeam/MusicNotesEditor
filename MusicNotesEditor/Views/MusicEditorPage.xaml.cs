@@ -74,7 +74,7 @@ namespace MusicNotesEditor.Views
                 FontFamily = (FontFamily)FindResource("Polihymnia")
             };
 
-            int additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
+            int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
             staffLineIndicators = new List<TextBlock>(additionalStaffLines);
 
             for (int i = 0; i < additionalStaffLines; i++)
@@ -172,6 +172,11 @@ namespace MusicNotesEditor.Views
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
         }
 
+        public void PlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.PlayScore();
+        }
+
 
         private void ToggleNote(RhythmicDuration note)
         {
@@ -260,7 +265,7 @@ namespace MusicNotesEditor.Views
             double distanceToClosestLine = Math.Abs(closest - pos.Y);
             
             Canvas.SetTop(noteIndicator, closest - noteIndicator.ActualHeight / 2);
-            var additionalStaffLines = int.Parse(App.Configuration["additionalStaffLines"], 0);
+            var additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
 
             for (int i = 0; i < additionalStaffLines; i++)
             {
