@@ -9,14 +9,14 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="MusicEditorPage">
 
-    <Grid x:Name="mainGrid" Background="{StaticResource BrushMedium}">
+    <Grid x:Name="mainGrid" Background="{StaticResource BrushLight}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
 
-        <Grid Grid.Row="0" Background="{StaticResource BrushDark}" Height="50">
+        <Grid Grid.Row="0" Background="{StaticResource BrushMedium}" Height="50">
             <Grid.ColumnDefinitions>  
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -38,11 +38,12 @@
                             <Setter Property="MaxHeight" Value="36"/>
                             <Setter Property="MinWidth" Value="30"/>
                             <Setter Property="VerticalAlignment" Value="Top"/>
-                            <Setter Property="Background" Value="{StaticResource BrushLight}"/>
+                            <Setter Property="Background" Value="{StaticResource BrushLightest}"/>
                             <Setter Property="BorderBrush" Value="Black"/>
                             <Setter Property="BorderThickness" Value="1"/>
                             <Setter Property="Margin" Value="4 0 0 0"/>
                             <Setter Property="Padding" Value="0 4 0 0"/>
+                            <Setter Property="Foreground" Value="White"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ToggleButton">
@@ -60,14 +61,13 @@
                                         <ControlTemplate.Triggers>
                                             <!-- Hover -->
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="border" Property="Background" Value="{StaticResource BrushLightest}"/>
+                                                <Setter TargetName="border" Property="Background" Value="{StaticResource BrushLight}"/>
                                                 <Setter TargetName="border" Property="BorderBrush" Value="Black"/>
                                             </Trigger>
                                             <!-- Selected / Checked -->
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter TargetName="border" Property="Background" Value="{StaticResource BrushPrimary}"/>
                                                 <Setter TargetName="border" Property="BorderBrush" Value="White"/>
-                                                <Setter Property="Foreground" Value="White"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>

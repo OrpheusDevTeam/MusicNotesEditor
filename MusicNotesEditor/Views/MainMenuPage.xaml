@@ -4,38 +4,256 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:MusicNotesEditor.Views"
+      xmlns:svg="http://sharpvectors.codeplex.com/svgc/"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="MainMenuPage">
+      Title="MainMenuPage"
+      FontFamily="{StaticResource BeVietnam}">
+
 
     <Grid>
-        <TextBlock Name="title"
-            Text="ORPHEUS"
-            FontSize="72"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"/>
-        
-        <Button 
-            Name="goToMusicEditorButton"
-            Click="GoToMusicEditorPage" 
-            VerticalAlignment="Center"
-            HorizontalAlignment="Left"
-            Margin="100"
-            Width="200"
-            Height="40">
-            Go to Music Editor
-        </Button>
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/background.png" Stretch="UniformToFill"/>
+        </Grid.Background>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.2*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="0.2*"/>
+        </Grid.ColumnDefinitions>
 
-        <Button 
-            Name="loadMusicXMLButton"
-            Click="SelectMusicXMLFile" 
-            VerticalAlignment="Center"
-            HorizontalAlignment="Right"
-            Margin="100"
-            Width="200"
-            Height="40">
-            Select MusicXML File to Load
-        </Button>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="0.15*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="0.15*"/>
+        </Grid.RowDefinitions>
 
+        <!-- ViewBox wraps the entire Border -->
+        <Viewbox Grid.Column="1" Grid.Row="1" Stretch="Uniform">
+            <Border 
+                Width="675"
+                Height="450"
+                BorderBrush="#FF2f2e3a" 
+                Background="#FF131020"
+                BorderThickness="3"
+                CornerRadius="8"
+                Padding="20">
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="0.3*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="0.15*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Title -->
+                    <TextBlock 
+                        Grid.Row="0"  
+                        FontSize="50" 
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Foreground="White"
+                        Text="ORPHEUS">
+                    </TextBlock>
+
+                    <Grid Grid.Row="1" Background="#131020">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Create New Project Button -->
+                        <Border Grid.Column="0" Grid.Row="0" 
+                                Margin="15"
+                                BorderBrush="#FF292834" 
+                                BorderThickness="2" 
+                                CornerRadius="8">
+                            <Button Margin="0" Name="goToMusicEditorButton" Click="GoToMusicEditorPage" Background="#FF1b182b" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                <Grid Margin="15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <!-- Fixed width for image -->
+                                        <ColumnDefinition Width="240"/>
+                                        <!-- Flexible for text -->
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Image Grid.Column="0" Grid.RowSpan="2" 
+                                           Source="/Assets/music.png" 
+                                           Width="60"
+                                           Height="60"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Left"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" 
+                                               Text="Create a New Project" 
+                                               Foreground="White" 
+                                               FontSize="16"
+                                               FontWeight="Bold" 
+                                               VerticalAlignment="Bottom" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,0,0,2"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="1" 
+                                               Text="Start from scratch" 
+                                               Foreground="LightGray" 
+                                               FontSize="12"
+                                               VerticalAlignment="Top" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,2,0,0"/>
+                                </Grid>
+                            </Button>
+                        </Border>
+
+                        <!-- Generate from Images / PDFs Button -->
+                        <Border Grid.Column="0" Grid.Row="1" 
+                                Margin="15"
+                                BorderBrush="#FF292834" 
+                                BorderThickness="2" 
+                                CornerRadius="8">
+                            <Button Margin="0" Name="loadImagesButton" Click="SelectImageFiles" Background="#FF1b182b" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                <Grid Margin="15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <!-- Fixed width for image -->
+                                        <ColumnDefinition Width="240"/>
+                                        <!-- Flexible for text -->
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Image Grid.Column="0" Grid.RowSpan="2" 
+                                           Source="/Assets/scan.png" 
+                                           Width="60"
+                                           Height="60"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Left"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" 
+                                               Text="Generate from Images" 
+                                               Foreground="White" 
+                                               FontSize="16"
+                                               FontWeight="Bold" 
+                                               VerticalAlignment="Bottom" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,0,0,2"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="1" 
+                                               Text="Images / PDFs (OMR)" 
+                                               Foreground="LightGray" 
+                                               FontSize="12"
+                                               VerticalAlignment="Top" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,2,0,0"/>
+                                </Grid>
+                            </Button>
+                        </Border>
+
+                        <!-- Open Project Button -->
+                        <Border Grid.Column="1" Grid.Row="0" 
+                                Margin="15"
+                                BorderBrush="#FF292834" 
+                                BorderThickness="2" 
+                                CornerRadius="8">
+                            <Button Margin="0" Name="loadMusicXMLButton" Click="SelectMusicXMLFile" Background="#FF1b182b" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                <Grid Margin="15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <!-- Fixed width for image -->
+                                        <ColumnDefinition Width="240"/>
+                                        <!-- Flexible for text -->
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Image Grid.Column="0" Grid.RowSpan="2" 
+                                           Source="/Assets/import.png" 
+                                           Width="60"
+                                           Height="60"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Left"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" 
+                                               Text="Open Project" 
+                                               Foreground="White" 
+                                               FontSize="16"
+                                               FontWeight="Bold" 
+                                               VerticalAlignment="Bottom" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,0,0,2"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="1" 
+                                               Text="Load existing project" 
+                                               Foreground="LightGray" 
+                                               FontSize="12"
+                                               VerticalAlignment="Top" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,2,0,0"/>
+                                </Grid>
+                            </Button>
+                        </Border>
+
+                        <!-- Settings Button -->
+                        <Border Grid.Column="1" Grid.Row="1" 
+                                Margin="15"
+                                BorderBrush="#FF292834" 
+                                BorderThickness="2" 
+                                CornerRadius="8">
+                            <Button Margin="0" Name="settingsButton" Click="OpenSettings" Background="#FF1b182b" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                <Grid Margin="15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <!-- Fixed width for image -->
+                                        <ColumnDefinition Width="240"/>
+                                        <!-- Flexible for text -->
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Image Grid.Column="0" Grid.RowSpan="2" 
+                                           Source="/Assets/settings.png" 
+                                           Width="60"
+                                           Height="60"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Left"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" 
+                                               Text="Settings" 
+                                               Foreground="White" 
+                                               FontSize="16"
+                                               FontWeight="Bold" 
+                                               VerticalAlignment="Bottom" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,0,0,2"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="1" 
+                                               Text="Configure application" 
+                                               Foreground="LightGray" 
+                                               FontSize="12"
+                                               VerticalAlignment="Top" 
+                                               HorizontalAlignment="Left"
+                                               Margin="5,2,0,0"/>
+                                </Grid>
+                            </Button>
+                        </Border>
+                    </Grid>
+
+                    <!-- Footer -->
+                    <TextBlock 
+                        Grid.Row="2"  
+                        FontSize="11" 
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Foreground="White"
+                        Text="v.0.5.5 2025">
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </Viewbox>
     </Grid>
 </Page>

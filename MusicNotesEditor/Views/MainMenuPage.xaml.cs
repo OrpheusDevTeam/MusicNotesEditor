@@ -13,7 +13,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Manufaktura.Controls.Model;
 using Microsoft.Win32;
+using MusicNotesEditor.ViewModels;
 
 namespace MusicNotesEditor.Views
 {
@@ -22,6 +24,9 @@ namespace MusicNotesEditor.Views
     /// </summary>
     public partial class MainMenuPage : Page
     {
+
+        private readonly FileArrangerViewModel viewModel = new FileArrangerViewModel();
+
         public MainMenuPage()
         {
             InitializeComponent();
@@ -33,14 +38,14 @@ namespace MusicNotesEditor.Views
             nav.Navigate(new MusicEditorPage());
         }
 
-        private string SelectFile(object sender, RoutedEventArgs e)
+        private string SelectXMLs(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
 
             // Configure the dialog
             openFileDialog.Title = "Select a file";
-            openFileDialog.Filter = "MusicXML files (*.musicxml)|*.musicxml";
-            openFileDialog.FilterIndex = 2;
+            openFileDialog.Filter = "MusicXML files (*.musicxml)|*.musicxml|XML files (*.xml)|*xml|All files (*.*)|*.*";
+            openFileDialog.FilterIndex = 1;
             openFileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             openFileDialog.Multiselect = false;
 
@@ -58,9 +63,34 @@ namespace MusicNotesEditor.Views
 
         private void SelectMusicXMLFile(object sender, RoutedEventArgs e)
         {
-            string filepath = SelectFile(sender, e);
-            NavigationService nav = NavigationService.GetNavigationService(this);
-            nav.Navigate(new MusicEditorPage(filepath));
+            string filepath = SelectXMLs(sender, e);
+            DataContext = viewModel;
+            try
+            {
+                viewModel.TestData(filepath);
+                if (viewModel.ValidateMusicXmlWithXsd(filepath) == true) {
+                    NavigationService nav = NavigationService.GetNavigationService(this);
+                    nav.Navigate(new MusicEditorPage(filepath));
+                } 
+                else
+                {
+                    MessageBox.Show("There was an error loading the chosen file, please ensure the format and content are follow the correct MusicXML standard.", "File import error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("There was an error loading the chosen file, please ensure the format and content are follow the correct MusicXML standard.", "File import error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SelectImageFiles(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new FileArrangerPage());
+        }
+
+        private void OpenSettings(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new FileArrangerPage());
         }
     }
 

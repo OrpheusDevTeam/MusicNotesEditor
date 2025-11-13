@@ -167,6 +167,9 @@ namespace MusicNotesEditor.Views
             noteViewer.Width = containerWidth * noteViewerWidthPercentage;
 
             noteViewer.Height = noteViewer.Width * 1.414;
+
+            viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
+            viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
         }
 
 

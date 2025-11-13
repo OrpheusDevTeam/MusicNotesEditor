@@ -539,14 +539,22 @@ namespace MusicNotesEditor.ViewModels
 
                     if (secondBarline == null)
                     {
+                        Console.WriteLine($"Before: bottomY={bottomY}, topY={topY}, leftX={leftX}");
 
-                        if (staff.Measures[i+1].System != staff.Measures[i].System)
+                        if (staff.Measures[i + 1].System != staff.Measures[i].System)
                         {
-                            bottomY = staff.Measures[i + 1].System.LinePositions[1].Last() - threshold - additionalStaffHeight;
+                            Console.WriteLine("Condition TRUE: staff.Measures[i+1].System != staff.Measures[i].System");
+
+                            bottomY = staff.Measures[i + 1].System.LinePositions[1].First() - threshold - additionalStaffHeight;
                             topY = staff.Measures[i + 1].System.LinePositions[1].Last() + threshold + additionalStaffHeight;
                             leftX = 0;
-                        }
 
+                            Console.WriteLine($"After: bottomY={bottomY}, topY={topY}, leftX={leftX}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Condition FALSE: staff.Measures[i+1].System == staff.Measures[i].System");
+                        }
                         if (clickYPos >= bottomY && clickYPos <= topY && clickXPos >= leftX)
                         {
                             return staff.Measures[i+1];

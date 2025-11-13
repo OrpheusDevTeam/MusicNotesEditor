@@ -29,4 +29,18 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Views\logo_orpheus.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="Assets\logo_orpheus.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Update="Assets\logo_orpheus.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Resource>
+  </ItemGroup>
+
 </Project>
