@@ -1,3 +1,6 @@
+using Microsoft.Win32;
+using MusicNotesEditor.LocalServer;
+using MusicNotesEditor.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,8 +15,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
-using MusicNotesEditor.ViewModels;
 
 
 namespace MusicNotesEditor.Views
@@ -27,6 +28,9 @@ namespace MusicNotesEditor.Views
         private readonly FileArrangerViewModel viewModel = new FileArrangerViewModel();
 
         public string[] SelectedFiles => fileItems.Select(f => f.FilePath).ToArray();
+
+        private CertAndServer? _server;
+
 
         public FileArrangerPage()
         {
@@ -590,6 +594,16 @@ namespace MusicNotesEditor.Views
                         "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        private async void btnConnectEurydice_Click(object sender, RoutedEventArgs e)
+        {
+            var srv = new CertAndServer();
+            var json = await srv.StartServerAsync();
+
+            var win = new QrConnectWindow(json);
+            win.Owner = Window.GetWindow(this);
+            win.ShowDialog();
         }
 
 

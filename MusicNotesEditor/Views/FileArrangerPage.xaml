@@ -25,7 +25,9 @@
                     Width="80" Height="30" Margin="0,0,10,0"/>
 			<Button x:Name="btnClearAll" Content="Clear All" Click="BtnClearAll_Click"
                     Width="80" Height="30"/>
-			<!-- Add Back button -->
+            <Button x:Name="btnConnectEurydice" Content="Upload via Mobile" Click="btnConnectEurydice_Click"
+                    Width="80" Height="30" Margin="0,0,10,0" Padding="10, 10, 10, 10"/>
+            <!-- Add Back button -->
 			<Button x:Name="btnBack" Content="Back to Menu" Click="BtnBack_Click"
                     Width="100" Height="30" Margin="20,0,0,0"/>
 		</StackPanel>
