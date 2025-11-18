@@ -190,18 +190,10 @@ namespace MusicNotesEditor.Views
 
             FrameworkElement? element = e.OriginalSource as FrameworkElement;
             var ownershipDictionary = SelectionHelper.GetOwnershipDictionary(noteViewer);
-
-            Console.WriteLine($"SELECTING tring!!!!!!!!!!!!!!!!!: {element.GetHashCode()}");
-            foreach(var kvp in ownershipDictionary)
-            {
-                Console.WriteLine(kvp.Key.ToString() + ": " + kvp.Value.ToString() + "xddd " + kvp.Key.GetHashCode());
-                
-            }
+            // Remember that for it to work non other method run on click can change score
 
             if (element == null || !ownershipDictionary.ContainsKey(element))
             {
-                Console.WriteLine(ownershipDictionary.Count());
-                Console.WriteLine(!ownershipDictionary.ContainsKey(element));
                 if (e.ClickCount == 2)
                 {
                     viewModel.UnSelectElements(noteViewer);
@@ -213,6 +205,7 @@ namespace MusicNotesEditor.Views
 
             viewModel.SelectElement(noteViewer, ownershipDictionary[element], shiftPressed);
         }
+
 
         private void Canvas_Release(object sender, MouseButtonEventArgs e)
         {

@@ -76,6 +76,7 @@ namespace MusicNotesEditor.ViewModels
             var score = new Score();
             score.DefaultPageSettings.DefaultStaffDistance = App.Settings.StaffDistance;
             score.DefaultPageSettings.DefaultSystemDistance = App.Settings.AdditionalStaffLines;
+
             for (int i = 0; i < numberOfParts; i++)
             {
                 score.AddStaff(Clef.Treble, TimeSignature.CommonTime, Step.C, MajorAndMinorScaleFlags.MajorSharp);
@@ -96,18 +97,12 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialTemplate(int numberOfParts)
         {
-            Console.WriteLine("initinidgafsasfas");
             if (!string.IsNullOrEmpty(XmlPath))
             {
-                Console.WriteLine("Untitling");
-
                 ScoreFileName = Path.GetFileName(XmlPath);
                 return;
             };
             ScoreFileName = "Untitled Score";
-
-            Console.WriteLine($"initinidgafsasfasXDSADASSXXACSADSA: {ScoreFileName}");
-
 
             int measuresInLine = Math.Max(
                 App.Settings.DefaultInitialMeasures.Value / numberOfParts,
@@ -154,10 +149,6 @@ namespace MusicNotesEditor.ViewModels
             stopwatch.Stop();
             Console.WriteLine($"Execution Time: {stopwatch.ElapsedMilliseconds} ms");
         }
-
-
-
-        
 
 
         public static void RemoveLastN<T>(ItemManagingCollection<T> collection, int n)
