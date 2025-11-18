@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MusicNotesEditor.Models
+namespace MusicNotesEditor.Models.Framework
 {
     internal class CorrectRest : Rest
     {
@@ -18,37 +18,37 @@ namespace MusicNotesEditor.Models
 
         public override char GetCharacter(IMusicFont font)
         {
-            if (base.BaseDuration == RhythmicDuration.Whole)
+            if (BaseDuration == RhythmicDuration.Whole)
             {
                 return font.RestWhole;
             }
 
-            if (base.BaseDuration == RhythmicDuration.Half)
+            if (BaseDuration == RhythmicDuration.Half)
             {
                 return font.RestHalf;
             }
 
-            if (base.BaseDuration == RhythmicDuration.Quarter)
+            if (BaseDuration == RhythmicDuration.Quarter)
             {
                 return font.RestQuarter;
             }
 
-            if (base.BaseDuration == RhythmicDuration.Eighth)
+            if (BaseDuration == RhythmicDuration.Eighth)
             {
                 return font.RestEighth;
             }
 
-            if (base.BaseDuration == RhythmicDuration.Sixteenth)
+            if (BaseDuration == RhythmicDuration.Sixteenth)
             {
                 return font.RestSixteenth;
             }
 
-            if (base.BaseDuration == RhythmicDuration.D32nd)
+            if (BaseDuration == RhythmicDuration.D32nd)
             {
                 return font.Rest32nd;
             }
 
-            if (base.BaseDuration == RhythmicDuration.D64th)
+            if (BaseDuration == RhythmicDuration.D64th)
             {
                 return 'V';
             }

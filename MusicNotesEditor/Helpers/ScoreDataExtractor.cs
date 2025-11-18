@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace MusicNotesEditor.Helpers
 {
-    internal class ScoreDataExtractor
+    public class ScoreDataExtractor
     {
+        private const int NUMBER_OF_LINES_IN_STAFF = 5;
 
         public static int GetStaffLineIndex(Score score, double yPosition, out List<double> linePositions)
         {
@@ -87,6 +88,93 @@ namespace MusicNotesEditor.Helpers
                 expanded.Add(last + i * avgGap);
 
             return expanded;
+        }
+
+
+        public static Measure? GetMeasure(Score score, double clickXPos, double clickYPos)
+        {
+            foreach (var staff in score.Staves)
+            {
+                var barlines = staff.Elements.OfType<Barline>().ToList();
+
+                for (int i = 0; i < barlines.Count - 1; i++)
+                {
+                    var firstBarline = barlines[i];
+                    var secondBarline = (i + 1 < barlines.Count) ? barlines[i + 1] : null;
+
+                    var threshold = App.Settings.SnappingThreshold.Value;
+
+                    var leftX = firstBarline.ActualRenderedBounds.SE.X;
+
+                    var additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
+
+                    var bottomY = firstBarline.ActualRenderedBounds.NE.Y - threshold;
+                    var topY = firstBarline.ActualRenderedBounds.SE.Y + threshold;
+                    var height = topY - bottomY;
+
+
+                    double additionalStaffHeight = height * ((double)additionalStaffLines / NUMBER_OF_LINES_IN_STAFF);
+
+                    topY += additionalStaffHeight;
+                    bottomY -= additionalStaffHeight;
+
+
+                    if (secondBarline == null)
+                    {
+                        Console.WriteLine($"Before: bottomY={bottomY}, topY={topY}, leftX={leftX}");
+
+                        if (staff.Measures[i + 1].System != staff.Measures[i].System)
+                        {
+                            Console.WriteLine("Condition TRUE: staff.Measures[i+1].System != staff.Measures[i].System");
+
+                            bottomY = staff.Measures[i + 1].System.LinePositions[1].First() - threshold - additionalStaffHeight;
+                            topY = staff.Measures[i + 1].System.LinePositions[1].Last() + threshold + additionalStaffHeight;
+                            leftX = 0;
+
+                            Console.WriteLine($"After: bottomY={bottomY}, topY={topY}, leftX={leftX}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Condition FALSE: staff.Measures[i+1].System == staff.Measures[i].System");
+                        }
+                        if (clickYPos >= bottomY && clickYPos <= topY && clickXPos >= leftX)
+                        {
+                            return staff.Measures[i + 1];
+                        }
+
+                        continue;
+                    }
+
+                    var rightX = secondBarline.ActualRenderedBounds.SE.X;
+
+                    var secondBottomY = secondBarline.ActualRenderedBounds.NE.Y - threshold - additionalStaffHeight;
+
+                    if (secondBottomY != bottomY)
+                    {
+                        bottomY = secondBottomY;
+                        topY = secondBarline.ActualRenderedBounds.SE.Y + threshold + additionalStaffHeight;
+                        leftX = 0;
+                    }
+
+                    if (clickYPos >= bottomY && clickYPos <= topY &&
+                        clickXPos >= leftX && clickXPos <= rightX)
+                    {
+                        return staff.Measures[i + 1];
+                    }
+                }
+            }
+
+            Console.WriteLine("❌ Click did not hit any measure");
+            return null;
+        }
+
+
+        public static double HorizontalPosition(MusicalSymbol element)
+        {
+            var elementMostLeftPosition = element.ActualRenderedBounds.SW.X;
+            var elementMostRightPosition = element.ActualRenderedBounds.SE.X;
+
+            return (elementMostLeftPosition + elementMostRightPosition) / 2;
         }
 
 

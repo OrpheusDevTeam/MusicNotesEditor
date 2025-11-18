@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MusicNotesEditor.Models
+namespace MusicNotesEditor.Models.Framework
 {
     internal class TempNote : Note
     {

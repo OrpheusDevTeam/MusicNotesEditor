@@ -1,9 +1,12 @@
 ﻿using Manufaktura.Controls.Model;
 using Manufaktura.Controls.WPF;
+using Manufaktura.Controls.WPF.Renderers;
 using Manufaktura.Music.Model;
 using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
 using MusicNotesEditor.ViewModels;
+using System.Reflection;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -63,9 +66,12 @@ namespace MusicNotesEditor.Views
             noteViewer.MouseLeftButtonDown += AddNote;
 
             mainCanvas = (Canvas)noteViewer.FindName("MainCanvas");
+
             noteViewer.MouseEnter += Canvas_MouseEnter;
             noteViewer.MouseLeave += Canvas_MouseLeave;
             noteViewer.MouseMove += Canvas_MouseMove;
+
+            noteViewer.MouseLeftButtonDown += Canvas_Click;
 
             noteIndicator = new TextBlock
             {
@@ -98,7 +104,7 @@ namespace MusicNotesEditor.Views
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
             viewModel.LoadInitialTemplate();
-            viewModel.AdjustWidth();
+            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth());
         }
 
 
@@ -177,20 +183,65 @@ namespace MusicNotesEditor.Views
             viewModel.PlayScore();
         }
 
+        public void Canvas_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (viewModel.CurrentNote != null)
+                return;
+
+            FrameworkElement? element = e.OriginalSource as FrameworkElement;
+            var ownershipDictionary = SelectionHelper.GetOwnershipDictionary(noteViewer);
+
+            Console.WriteLine($"SELECTING tring!!!!!!!!!!!!!!!!!: {element.GetHashCode()}");
+            foreach(var kvp in ownershipDictionary)
+            {
+                Console.WriteLine(kvp.Key.ToString() + ": " + kvp.Value.ToString() + "xddd " + kvp.Key.GetHashCode());
+                
+            }
+
+            if (element == null || !ownershipDictionary.ContainsKey(element))
+            {
+                Console.WriteLine(ownershipDictionary.Count());
+                Console.WriteLine(!ownershipDictionary.ContainsKey(element));
+                if (e.ClickCount == 2)
+                {
+                    viewModel.UnSelectElements(noteViewer);
+                }
+                return;
+            }
+
+            bool shiftPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+            viewModel.SelectElement(noteViewer, ownershipDictionary[element], shiftPressed);
+        }
+
+        private void Canvas_Release(object sender, MouseButtonEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleKeyDown(object sender, KeyEventArgs e)
+        {
+            switch(e.Key)
+            {
+                case System.Windows.Input.Key.Delete:
+                    viewModel.DeleteSelectedElements(noteViewer);
+                    break;
+            }
+        }
+
 
         private void ToggleNote(RhythmicDuration note)
         {
+            viewModel.UnSelectElements(noteViewer);
             var notesButtons = NoteToolbar.Items;
 
             if (viewModel.CurrentNote == note)
             {
                 viewModel.CurrentNote = null;
-                noteViewer.IsSelectable = true;
             }
             else
             {
                 viewModel.CurrentNote = note;
-                noteViewer.IsSelectable = false;
             }
 
             foreach (ToggleButton noteButton in notesButtons)
@@ -294,6 +345,7 @@ namespace MusicNotesEditor.Views
 
         private void NoteViewer_Loaded(object sender, RoutedEventArgs e)
         {
+            
 
         }
 
@@ -363,6 +415,8 @@ namespace MusicNotesEditor.Views
                 for (int j = 0; j < elements.Count; j++)
                 {
                     Console.WriteLine($"\tStave: {i + 1} Measure: {elements[j].Measure} Element: {j + 1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
+                    string json = JsonSerializer.Serialize(elements[j].CustomColor, new JsonSerializerOptions { WriteIndented = true });
+                    Console.WriteLine(json?? "No Color");
                 }
             }
 

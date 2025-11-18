@@ -17,5 +17,12 @@ namespace MusicNotesEditor.Helpers
             return new RhythmicDuration(powerOfTwoDenominator);
         }
 
+        public static RhythmicDuration DoubleDuration(RhythmicDuration duration)
+        {
+            Proportion proportion = duration.ToProportion() * 2;
+            int powerOfTwoDenominator = (int)Math.Log2(proportion.Denominator);
+            return new RhythmicDuration(powerOfTwoDenominator);
+        }
+
     }
 }
