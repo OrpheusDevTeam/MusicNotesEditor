@@ -25,7 +25,7 @@ namespace MusicNotesEditor.Helpers
                     )
                 );
 
-                if (lines.Count() == 0)
+                if (lines.Count == 0)
                     continue;
 
                 int threshold = App.Settings.SnappingThreshold.Value;
@@ -39,7 +39,7 @@ namespace MusicNotesEditor.Helpers
                 int closestIndex = 0;
                 double smallestDiff = double.MaxValue;
 
-                for (int i = 0; i < lines.Count(); i++)
+                for (int i = 0; i < lines.Count; i++)
                 {
                     double diff = Math.Abs(lines[i] - yPosition);
                     if (diff < smallestDiff)
@@ -58,7 +58,7 @@ namespace MusicNotesEditor.Helpers
 
         private static List<double> AddValuesInBetween(List<double> values)
         {
-            return values.SelectMany((v, i) => i < values.Count() - 1
+            return values.SelectMany((v, i) => i < values.Count - 1
                     ? new List<double> { v, (v + values[i + 1]) / 2.0 }
                     : new List<double> { v })
                 .ToList();

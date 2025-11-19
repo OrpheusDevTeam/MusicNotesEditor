@@ -43,6 +43,18 @@ namespace MusicNotesEditor.Helpers
             ColorElements(noteViewer, elements, color);
         }
 
+        public static void ColorSelectedElement(NoteViewer noteViewer, MusicalSymbol element)
+        {
+            var elements = new List<MusicalSymbol>() { element };
+            ColorSelectedElements(noteViewer, elements);
+        }
+
+        public static void ColorSelectedElements(NoteViewer noteViewer, List<MusicalSymbol> selectedElements)
+        {
+            var selectionColor = Color.FromRgb(200, 20, 150);
+            ColorElements(noteViewer, selectedElements, selectionColor);
+        }
+
 
         public static void ColorElements(NoteViewer noteViewer, List<MusicalSymbol> elements, Color? color = null)
         {
@@ -71,7 +83,6 @@ namespace MusicNotesEditor.Helpers
                 }
             }
         }
-
 
     }
 }

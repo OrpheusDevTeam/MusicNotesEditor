@@ -36,6 +36,7 @@ namespace MusicNotesEditor.Views
 
             DataContext = viewModel;
             viewModel.XmlPath = filepath;
+            viewModel.noteViewer = noteViewer;
 
             try
             {
@@ -122,21 +123,27 @@ namespace MusicNotesEditor.Views
                 / noteViewer.ZoomFactor;
         }
 
+
         private void GenerateNoteButtons()
         {
-            foreach (var note in NoteDuration.AvailableNotes)
+            foreach (var note in NoteDurationData.AvailableNotes)
             {
                 var tooltip = new ToolTip
                 {
                     Content = new TextBlock
                     {
                         Inlines =
-                        {
-                            new Run(note.NoteName) { FontWeight = FontWeights.Bold },
-                            new Run($"\n{note.Description}")
-                        }
+                {
+                    new Run(note.NoteName) { FontWeight = FontWeights.Bold },
+                    new Run($"\n{note.Description}"),
+                }
                     }
                 };
+
+                // Create a command for this note
+                var noteCommand = new RelayCommand(
+                    execute: () => ToggleNote(note.Duration)
+                );
 
                 var btn = new ToggleButton
                 {
@@ -145,24 +152,103 @@ namespace MusicNotesEditor.Views
                     Style = NoteToolbar.Resources["ToolBarButtonStyle"] as Style,
                     Tag = note.Duration,
                     Margin = new Thickness(2),
+                    Command = noteCommand
                 };
 
-                btn.Click += (s, e) => ToggleNote(note.Duration);
+                if (note.Shortcut != null)
+                {
+                    var inputBinding = new InputBinding(
+                        noteCommand,
+                        note.Shortcut
+                    );
 
-                var gesture = note.Shortcut;
-                var command = new RoutedCommand();
-                command.InputGestures.Add(gesture);
+                    this.InputBindings.Add(inputBinding);
+                }
 
                 NoteToolbar.Items.Add(btn);
-
-                var keyBinding = new KeyBinding(
-                    new RelayCommand(() =>
-                    {
-                        btn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                    }
-                    ),
-                    note.Shortcut);
             }
+
+            foreach (var accidental in AccidentalsData.AvailableAccidentals)
+            {
+                var tooltip = new ToolTip
+                {
+                    Content = new TextBlock
+                    {
+                        Inlines =
+                {
+                    new Run(accidental.AccidentalName) { FontWeight = FontWeights.Bold },
+                    new Run($"\n{accidental.Description}"),
+                }
+                    }
+                };
+
+                // Create a command for this note
+                var accidentalCommand = new RelayCommand(
+                    execute: () =>
+                    {
+                        if(viewModel.IsNothingSelected)
+                            ToggleAccidental(accidental.Alter);
+                        else if(viewModel.IsNoteOrRestSelected)
+                            ApplyAccidentals(accidental.Alter);
+                    }
+                );
+
+                var btn = new ToggleButton
+                {
+                    Content = accidental.SmuflChar,
+                    ToolTip = tooltip,
+                    Style = NoteToolbar.Resources["ToolBarButtonStyle"] as Style,
+                    Tag = accidental.Alter,
+                    Margin = new Thickness(2),
+                    Padding = new Thickness(0, -4, 0, 2),
+                    FontSize = 28,
+                    Command = accidentalCommand
+                };
+
+                if (accidental.Shortcut != null)
+                {
+                    var inputBinding = new InputBinding(
+                        accidentalCommand,
+                        accidental.Shortcut
+                    );
+
+                    this.InputBindings.Add(inputBinding);
+                }
+
+                AccidentalsToolbar.Items.Add(btn);
+
+                // Skip toolbar for selected elements for rest
+                if (accidental.Alter == 2)
+                    continue;
+
+                tooltip = new ToolTip
+                {
+                    Content = new TextBlock
+                    {
+                        Inlines =
+                {
+                    new Run(accidental.AccidentalName) { FontWeight = FontWeights.Bold },
+                    new Run($"\n{accidental.Description}"),
+                }
+                    }
+                };
+
+                var btnForSelection = new ToggleButton
+                {
+                    Content = accidental.SmuflChar,
+                    ToolTip = tooltip,
+                    Style = NoteToolbar.Resources["ToolBarButtonStyle"] as Style,
+                    Tag = accidental.Alter,
+                    Margin = new Thickness(2),
+                    Padding = new Thickness(0, -4, 0, 2),
+                    FontSize = 28,
+                    Command = accidentalCommand
+                };
+
+                AccidentalsSelectToolbar.Items.Add(btnForSelection);
+
+            }
+
         }
 
 
@@ -196,14 +282,14 @@ namespace MusicNotesEditor.Views
             {
                 if (e.ClickCount == 2)
                 {
-                    viewModel.UnSelectElements(noteViewer);
+                    viewModel.UnSelectElements();
                 }
                 return;
             }
 
             bool shiftPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
 
-            viewModel.SelectElement(noteViewer, ownershipDictionary[element], shiftPressed);
+            viewModel.SelectElement(ownershipDictionary[element], shiftPressed);
         }
 
 
@@ -217,7 +303,10 @@ namespace MusicNotesEditor.Views
             switch(e.Key)
             {
                 case System.Windows.Input.Key.Delete:
-                    viewModel.DeleteSelectedElements(noteViewer);
+                    viewModel.DeleteSelectedElements();
+                    break;
+                case System.Windows.Input.Key.Escape:
+                    viewModel.UnSelectElements();
                     break;
             }
         }
@@ -225,7 +314,7 @@ namespace MusicNotesEditor.Views
 
         private void ToggleNote(RhythmicDuration note)
         {
-            viewModel.UnSelectElements(noteViewer);
+            viewModel.UnSelectElements();
             var notesButtons = NoteToolbar.Items;
 
             if (viewModel.CurrentNote == note)
@@ -245,13 +334,58 @@ namespace MusicNotesEditor.Views
 
                 noteButton.IsChecked = buttonDuration == viewModel.CurrentNote;
             }
-            
+
+            noteIndicator.Text = NoteDurationData.SmuflCharFromDuration(viewModel.CurrentNote);
+            if (viewModel.IsRest)
+            {
+                noteIndicator.Text = noteIndicator.Text.ToUpper();
+            }
+        }
+
+
+        private void ToggleAccidental(int alter)
+        {
+            if(!viewModel.IsNothingSelected) 
+                return;
+
+            viewModel.UnSelectElements();
+            var accidentalsButtons = AccidentalsToolbar.Items;
+
+            viewModel.CurrentAccidental = alter;
+          
+            foreach (ToggleButton accidentalButton in accidentalsButtons)
+            {
+                if (accidentalButton == null)
+                    continue;
+                int accidental = (int)accidentalButton.Tag;
+
+                accidentalButton.IsChecked = accidental == viewModel.CurrentAccidental;
+            }
+        }
+
+        private void ApplyAccidentals(int alter)
+        {   
+            if (viewModel.IsNothingSelected)
+                return;
+
+            Console.WriteLine($"!!!!!!!!!!!!!!!!!!!!Applying Alter: {alter}");
+            viewModel.ApplyAccidentals(alter);
+
+            var accidentalsSelectButtons = AccidentalsSelectToolbar.Items;
+
+            foreach (ToggleButton accidentalButton in accidentalsSelectButtons)
+            {
+                if (accidentalButton == null)
+                    continue;
+                accidentalButton.IsChecked = false;
+            }
+
         }
 
         private void AddNote(object sender, MouseButtonEventArgs e)
         {
             var pos = e.GetPosition(mainCanvas);
-            viewModel.AddNote(noteViewer, pos.X, pos.Y);
+            viewModel.AddNote( pos.X, pos.Y);
             Canvas_MouseLeave(null, null);
             Canvas_MouseEnter(null, null);
         }
@@ -265,7 +399,11 @@ namespace MusicNotesEditor.Views
                 mainCanvas.Children.Add(staffLineIndicator);
             }
             
-            noteIndicator.Text = NoteDuration.SmuflCharFromDuration(viewModel.CurrentNote);
+            noteIndicator.Text = NoteDurationData.SmuflCharFromDuration(viewModel.CurrentNote);
+            if(viewModel.IsRest)
+            {
+                noteIndicator.Text = noteIndicator.Text.ToUpper();
+            }
         }
 
         private void Canvas_MouseLeave(object sender, MouseEventArgs e)
@@ -276,8 +414,6 @@ namespace MusicNotesEditor.Views
             {
                 mainCanvas.Children.Remove(staffLineIndicator);
             }
-
-
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
@@ -320,9 +456,9 @@ namespace MusicNotesEditor.Views
                         staffLineIndicators[i],
                         closestLinePositions[i*2] - staffLineIndicators[i].ActualHeight / 3.75);
                 }
-                else if ( (closestLinePositions.Count() - lineIndex) / 2 <= additionalStaffLines)
+                else if ( (closestLinePositions.Count - lineIndex) / 2 <= additionalStaffLines)
                 {
-                    var additionalLineIndex = closestLinePositions.Count() - (i + 1) * 2;
+                    var additionalLineIndex = closestLinePositions.Count - (i + 1) * 2;
                     Canvas.SetTop(
                         staffLineIndicators[i],
                         closestLinePositions[additionalLineIndex] - staffLineIndicators[i].ActualHeight / 4.5);
@@ -338,7 +474,8 @@ namespace MusicNotesEditor.Views
 
         private void NoteViewer_Loaded(object sender, RoutedEventArgs e)
         {
-            
+
+            ToggleAccidental(0);
 
         }
 

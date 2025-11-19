@@ -32,6 +32,8 @@
                     FontFamily="{StaticResource Polihymnia}"
                     FontSize="24"
                     Padding="10 0 10 0"
+                    Visibility="{Binding IsNothingSelected,
+                                  Converter={StaticResource BoolToVisibility}}"
                     >
                     <ToolBar.Resources>
                         <Style x:Key="ToolBarButtonStyle" TargetType="ToggleButton">
@@ -76,8 +78,25 @@
                             </Setter>
                         </Style>
                     </ToolBar.Resources>
-                    
                 </ToolBar>
+                <ToolBar x:Name="AccidentalsToolbar"
+                Background="Transparent" 
+                BorderThickness="0"
+                FontFamily="{StaticResource Polihymnia}"
+                FontSize="24"
+                Padding="10 0 10 0"
+                Visibility="{Binding IsNothingSelected,
+                              Converter={StaticResource BoolToVisibility}}"
+                />
+                <ToolBar x:Name="AccidentalsSelectToolbar"
+                Background="Transparent" 
+                BorderThickness="0"
+                FontFamily="{StaticResource Polihymnia}"
+                FontSize="24"
+                Padding="10 0 10 0"
+                Visibility="{Binding IsNoteOrRestSelected,
+                              Converter={StaticResource BoolToVisibility}}"
+                />
             </ToolBarTray>
 
             <TextBlock Grid.Column="1"

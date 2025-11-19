@@ -1,5 +1,7 @@
 ﻿using Manufaktura.Controls.Model;
+using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
+using MusicNotesEditor.Models;
 using MusicNotesEditor.Models.Framework;
 using System;
 using System.Collections.Generic;
@@ -16,7 +18,7 @@ namespace MusicNotesEditor.Helpers
         private const int TEMP_NOTE_OFFSET = 8;
 
         public static void InsertNote(Score score, double clickXPos, double clickYPos, double noteViewerContentWidth,
-            RhythmicDuration? currentNote, bool isRest)
+            RhythmicDuration? currentNote, bool isRest, int accidental)
         {
             // Additional Staff lines gives twice as many additional positions for notes to be in
             var additionalPositions = App.Settings.AdditionalStaffLines.Value * 2;
@@ -31,7 +33,7 @@ namespace MusicNotesEditor.Helpers
             Console.WriteLine("\nMeasuring: ");
             Console.WriteLine(currentMeasure);
             Console.WriteLine($"\nCLICK: \n\tX: {clickXPos} \n\tY: {clickYPos} LINE INDEX: {staffLineIndex}");
-            if (currentMeasure == null || currentMeasure.Elements.Count() == 1)
+            if (currentMeasure == null || currentMeasure.Elements.Count == 1)
             {
                 return;
             }
@@ -49,7 +51,7 @@ namespace MusicNotesEditor.Helpers
                 }
             }
 
-            int currentMeasureEndIndex = currentMeasureStartIndex + currentMeasure.Elements.Count() - 1;
+            int currentMeasureEndIndex = currentMeasureStartIndex + currentMeasure.Elements.Count - 1;
             if (currentMeasure.Number == currentMeasure.Staff.Measures.Last().Number)
                 currentMeasureEndIndex++;
 
@@ -158,16 +160,16 @@ namespace MusicNotesEditor.Helpers
             Proportion zeroProportion = new Proportion(0, 1);
             int startingIndex = elementOnLeftIndex + 1;
             int direction = Direction(isRightCloser);
-            int cursor = Math.Min(startingIndex + direction, staffElements.Count());
+            int cursor = Math.Min(startingIndex + direction, staffElements.Count);
             bool startOverridingNotes = false;
             int notCorrectRestNeighboursCount = 0;
 
             while (excessProportion > zeroProportion)
             {
-                if (cursor >= staffElements.Count())
+                if (cursor >= staffElements.Count)
                 {
                     direction = -1;
-                    cursor = staffElements.Count() - 1;
+                    cursor = staffElements.Count - 1;
                     notCorrectRestNeighboursCount++;
                     continue;
                 }
@@ -182,35 +184,47 @@ namespace MusicNotesEditor.Helpers
 
                 if (element is CorrectRest rest)
                 {
-                    if (rest.Duration.ToProportion() > excessProportion)
+                    if( (startOverridingNotes && isRest) || !isRest)
                     {
-                        var proportionToFill = rest.Duration.ToProportion() - excessProportion;
-
-                        var currentDuration = DurationHelper.HalfDuration(rest.Duration);
-                        rest.Duration = currentDuration;
-                        proportionToFill -= currentDuration.ToProportion();
-
-                        while (proportionToFill != zeroProportion)
+                        if (rest.Duration.ToProportion() > excessProportion)
                         {
-                            currentDuration = DurationHelper.HalfDuration(currentDuration);
-                            Console.WriteLine($"\tDuration: {currentDuration}");
-                            Console.WriteLine($"\tProportion: {proportionToFill}");
+                            var proportionToFill = rest.Duration.ToProportion() - excessProportion;
 
-                            if (currentDuration.ToProportion() > proportionToFill)
+                            var currentDuration = DurationHelper.HalfDuration(rest.Duration);
+                            while (currentDuration.ToProportion() > proportionToFill)
                             {
-                                continue;
+                                currentDuration = DurationHelper.HalfDuration(currentDuration);
                             }
-                            staffElements.Insert(cursor, new CorrectRest(currentDuration));
+                            rest.Duration = currentDuration;
                             proportionToFill -= currentDuration.ToProportion();
+
+                            while (proportionToFill != zeroProportion)
+                            {
+                                currentDuration = DurationHelper.HalfDuration(currentDuration);
+                                Console.WriteLine($"\tDuration: {currentDuration}");
+                                Console.WriteLine($"\tProportion: {proportionToFill}");
+
+                                if (currentDuration.ToProportion() > proportionToFill)
+                                {
+                                    continue;
+                                }
+                                staffElements.Insert(cursor, new CorrectRest(currentDuration));
+                                proportionToFill -= currentDuration.ToProportion();
+                            }
+                            break;
                         }
-                        break;
+                        else
+                        {
+                            Console.WriteLine($"Removed Element: {staffElements[cursor]}");
+                            staffElements.RemoveAt(cursor);
+                            excessProportion -= rest.Duration.ToProportion();
+                            cursor--;
+                        }
                     }
                     else
                     {
-                        Console.WriteLine($"Removed Element: {staffElements[cursor]}");
-                        staffElements.RemoveAt(cursor);
-                        excessProportion -= rest.Duration.ToProportion();
-                        cursor--;
+                        direction *= -1;
+                        notCorrectRestNeighboursCount++;
                     }
                 }
                 else if (element is TempNote tempNote)
@@ -218,7 +232,7 @@ namespace MusicNotesEditor.Helpers
                 }
                 else if (element is Note note)
                 {
-                    if (startOverridingNotes)
+                    if ( (startOverridingNotes && !isRest) || isRest )
                     {
                         if (note.Duration.ToProportion() > excessProportion)
                         {
@@ -278,12 +292,20 @@ namespace MusicNotesEditor.Helpers
 
 
             // Replace new note with note
-            for (int i = currentMeasureStartIndex; i < staffElements.Count(); i++)
-            {
+            for (int i = currentMeasureStartIndex; i < staffElements.Count; i++)
+            { 
                 var tempNote = staffElements[i] as TempNote;
                 if (tempNote != null)
                 {
-                    staffElements[i] = new Note(tempNote.Pitch, tempNote.Duration);
+                    if(isRest)
+                    {
+                        staffElements[i] = new CorrectRest(tempNote.Duration);
+                    }
+                    else
+                    {
+                        var newPitch = AccidentalsData.AlterPitch(tempNote.Pitch, accidental);
+                        staffElements[i] = new Note(newPitch, tempNote.Duration);
+                    }
                 }
             }
 
@@ -308,7 +330,7 @@ namespace MusicNotesEditor.Helpers
 
 
 
-        public static void Rerender(Score score)
+        public static void Rerender(Score score, NoteViewer? noteViewer = null,  List<MusicalSymbol>? selectedElements = null)
         {
             score.FirstStaff.Elements.Add(new PrintSuggestion()
             {
@@ -318,6 +340,9 @@ namespace MusicNotesEditor.Helpers
                 IsVisible = false,
             });
             score.FirstStaff.Elements.RemoveAt(score.FirstStaff.Elements.Count - 1);
+
+            if(noteViewer != null && selectedElements != null)
+                SelectionHelper.ColorSelectedElements(noteViewer, selectedElements);
         }
 
         private static int Direction(bool value)

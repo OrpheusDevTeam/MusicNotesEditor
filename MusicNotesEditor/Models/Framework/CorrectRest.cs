@@ -50,7 +50,7 @@ namespace MusicNotesEditor.Models.Framework
 
             if (BaseDuration == RhythmicDuration.D64th)
             {
-                return 'V';
+                return 'U';
             }
 
             return '\0';

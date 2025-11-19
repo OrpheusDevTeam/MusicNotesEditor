@@ -9,6 +9,7 @@ using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
 using MusicNotesEditor.Helpers;
+using MusicNotesEditor.Models;
 using MusicNotesEditor.Models.Framework;
 using Newtonsoft.Json.Linq;
 using System;
@@ -34,14 +35,19 @@ namespace MusicNotesEditor.ViewModels
 
         public List<MusicalSymbol> SelectedSymbols = new List<MusicalSymbol>();
         public RhythmicDuration? CurrentNote = null;
-        public bool IsRest = false;
+        public int CurrentAccidental = 0;
         public bool IsDragging = false;
         public double NoteViewerContentWidth;
         public double NoteViewerContentHeight;
         public string XmlPath = "";
 
+        public bool IsNoteOrRestSelected => SelectedSymbols.Any(symbol => symbol is NoteOrRest);
+        public bool IsClefSelected => SelectedSymbols.Any(symbol => symbol is Clef);
+        public bool IsTimeSignatureSelected => SelectedSymbols.Any(symbol => symbol is TimeSignature);
+        public bool IsNothingSelected => !SelectedSymbols.Any();
+        public bool IsRest => CurrentAccidental == 2;
+
         private string _scoreFileName;
-        private Color selectionColor = Color.FromRgb(200, 0, 200);
         private ScorePlayer player;
         private Score data;
         public Score Data
@@ -55,6 +61,8 @@ namespace MusicNotesEditor.ViewModels
             get { return _scoreFileName; }
             set { _scoreFileName = value; OnPropertyChanged(() => ScoreFileName); }
         }
+
+        public NoteViewer noteViewer;
         
 
         public void LoadInitialData()
@@ -139,12 +147,12 @@ namespace MusicNotesEditor.ViewModels
         }
 
 
-        public void AddNote(NoteViewer noteViewer, double clickXPos, double clickYPos)
+        public void AddNote(double clickXPos, double clickYPos)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, CurrentNote, IsRest);        
+            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, CurrentNote, IsRest, CurrentAccidental);        
 
             stopwatch.Stop();
             Console.WriteLine($"Execution Time: {stopwatch.ElapsedMilliseconds} ms");
@@ -176,39 +184,40 @@ namespace MusicNotesEditor.ViewModels
         }
 
 
-        public void SelectElement(NoteViewer noteViewer, MusicalSymbol musicalSymbol, bool multiSelect)
+        public void SelectElement(MusicalSymbol musicalSymbol, bool multiSelect)
         {
             Console.WriteLine($"SELECTING: {musicalSymbol}");
 
             if (CurrentNote != null || musicalSymbol == null || !IsSymbolSelectable(musicalSymbol)) 
                 return;
 
-            if( !IsNoteOrRestSelected() )
+            if( !IsNoteOrRestSelected )
             {
                 multiSelect = false;
             }
 
             if(!multiSelect || !typeof(NoteOrRest).IsAssignableFrom(musicalSymbol.GetType()) )
             {
-                UnSelectElements(noteViewer);
+                UnSelectElements();
             }
 
             Console.WriteLine($"SELECTED ELEMENT!!!!!!!!!!!!!!!!!: {musicalSymbol}");     
             
 
-            SelectionHelper.ColorElement(noteViewer, musicalSymbol, selectionColor);
+            SelectionHelper.ColorSelectedElement(noteViewer, musicalSymbol);
 
             if(!SelectedSymbols.Contains(musicalSymbol))
                 SelectedSymbols.Add(musicalSymbol);
             Console.WriteLine($"SELECTED ELEMENTS!!!!!!!!!!!!!!!!!: B: {string.Join(",", SelectedSymbols)}");
+            NotifySelectionPropertiesChanged();
         }
 
-        public void UnSelectElements(NoteViewer viewer, Func<MusicalSymbol, bool>? filter = null)
+        public void UnSelectElements(Func<MusicalSymbol, bool>? filter = null)
         {
             if (filter == null)
             {
                 Console.WriteLine($"UNSELECTING ALL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                SelectionHelper.ColorElements(viewer, SelectedSymbols);
+                SelectionHelper.ColorElements(noteViewer, SelectedSymbols);
                 SelectedSymbols.Clear();
             }
             else
@@ -216,7 +225,7 @@ namespace MusicNotesEditor.ViewModels
                 var elementsToUnselect = SelectedSymbols.Where(filter).ToList();
                 Console.WriteLine($"Unselecting {elementsToUnselect.Count} filtered elements");
 
-                SelectionHelper.ColorElements(viewer, SelectedSymbols);
+                SelectionHelper.ColorElements(noteViewer, SelectedSymbols);
 
                 foreach (var element in elementsToUnselect)
                 {
@@ -224,14 +233,15 @@ namespace MusicNotesEditor.ViewModels
                 }
 
             }
+            NotifySelectionPropertiesChanged();
         }
 
 
-        public void DeleteSelectedElements(NoteViewer noteViewer)
+        public void DeleteSelectedElements()
         {
 
             Console.WriteLine("DELETING!!!!!!!!!!!!!!");
-            if (!IsNoteOrRestSelected())
+            if (!IsNoteOrRestSelected)
                 return;
 
             Console.WriteLine("DELETING AND PASSED!!!");
@@ -240,8 +250,32 @@ namespace MusicNotesEditor.ViewModels
 
             ScoreEditHelper.Rerender(Data);
             
-            SelectionHelper.ColorElements(noteViewer, SelectedSymbols, selectionColor);
+            SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
 
+        }
+
+
+        public void ApplyAccidentals(int accidental)
+        {
+            foreach (var symbol in SelectedSymbols)
+            {
+                Console.WriteLine($"FOUND SYMBOL: {symbol}");
+                if(symbol is Note note && accidental != 2)
+                {
+                    Console.WriteLine($"FOUND NOTE: {note}");
+                    note.Pitch = AccidentalsData.AlterPitch(note.Pitch, accidental);
+                    Console.WriteLine($"NOTE AFTER CHANGE: {note}");
+                }
+            }
+            ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
+        }
+
+        private void NotifySelectionPropertiesChanged()
+        {
+            OnPropertyChanged(nameof(IsNoteOrRestSelected));
+            OnPropertyChanged(nameof(IsClefSelected));
+            OnPropertyChanged(nameof(IsTimeSignatureSelected));
+            OnPropertyChanged(nameof(IsNothingSelected));
         }
 
 
@@ -251,10 +285,6 @@ namespace MusicNotesEditor.ViewModels
                 allowedType.IsAssignableFrom(symbol.GetType()));
         }
 
-        private bool IsNoteOrRestSelected()
-        {
-            return SelectedSymbols.Any(symbol => symbol is NoteOrRest);
-        }
 
     }
 }
