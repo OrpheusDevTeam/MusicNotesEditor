@@ -1,21 +1,19 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.IO;
-using System.Linq;
+﻿using Microsoft.AspNetCore.Connections;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace MusicNotesEditor.LocalServer
 {
+    public class PendingRequest
+    {
+        public string Key { get; set; }
+        public DateTime Time { get; set; }
+        public string DeviceName { get; set; }
+    }
     public sealed class CertAndServer : IDisposable
     {
         private const string SubjectCN = "CN=EurydiceLocal";
@@ -26,6 +24,8 @@ namespace MusicNotesEditor.LocalServer
         public string FingerprintSha256 { get; private set; } = null!;
         public string ServerUrl { get; private set; } = null!;
         public string Token { get; private set; } = GenerateSecureToken();
+
+        private readonly Dictionary<string, DeviceRequest> Connections = new();
 
         private static string GenerateSecureToken()
         {
@@ -93,6 +93,18 @@ namespace MusicNotesEditor.LocalServer
 
         public async Task<string> StartServerAsync(int port = 5003)
         {
+            if(_app is not null)
+            {
+
+                return JsonSerializer.Serialize(new
+                {
+                    url = ServerUrl,
+                    token = Token,
+                    fp = FingerprintSha256
+                });
+           
+            }
+
             EnsureCertificate();
 
             var hostIp = GetLocalIPv4();
@@ -143,6 +155,43 @@ namespace MusicNotesEditor.LocalServer
                 return Results.Json(payload);
             });
 
+            app.MapPost("/request_access", async (HttpRequest req) =>
+            {
+                string? token = req.Headers["X-Token"];
+                if (token != Token)
+                    return Results.Forbid();
+
+                var payload = await JsonSerializer.DeserializeAsync<AccessRequestPayload>(req.Body);
+                if (payload == null || string.IsNullOrWhiteSpace(payload.DeviceName))
+                    return Results.BadRequest();
+
+                var id = Guid.NewGuid().ToString();
+
+                Connections[id] = new DeviceRequest
+                {
+                    Id = id,
+                    DeviceName = payload.DeviceName
+                };
+
+                Console.WriteLine($"[REQ] Device '{payload.DeviceName}' requested approval ({id})");
+
+                return Results.Ok(new { id });
+            });
+
+            //string? token = req.Headers["X-Token"];
+            //string? deviceId = req.Headers["DeviceID"];
+
+            //if (deviceId is null || token is null)
+            //    return Results.Unauthorized();
+
+            //DeviceRequest? deviceStatus;
+            //Connections.TryGetValue(deviceId, out deviceStatus);
+
+            //if (deviceStatus is null)
+            //    return Results.Forbid();
+
+            //if (token != Token || deviceStatus.Approved != true)
+            //    return Results.Forbid();
             app.MapPost("/upload", async (HttpRequest req) =>
             {
                 string? token = req.Headers["X-Token"];
@@ -165,11 +214,97 @@ namespace MusicNotesEditor.LocalServer
                 return Results.Ok(new { ok = true, file = name, path = savePath });
             });
 
+            // Return all pending requests
 
 
-            _app = app;
-            await app.StartAsync();
+            app.MapGet("/pending", () =>
+            {
+                var list = GetPending();
 
+                return Results.Json(list);
+            });
+
+
+            // Approve device
+            app.MapPost("/approve/{id}", (string id) =>
+            {
+                if (Connections.TryGetValue(id, out var req))
+                {
+                    req.Approved = true;
+                    return Results.Ok();
+                }
+
+                return Results.NotFound();
+            });
+
+            // Deny device
+            app.MapPost("/deny/{id}", (string id) =>
+            {
+                if (Connections.TryGetValue(id, out var req))
+                {
+                    req.Approved = false;
+                    return Results.Ok();
+                }
+
+                return Results.NotFound();
+            });
+
+            // Download uploaded image by file name
+            app.MapGet("/image/{file}", (string file) =>
+            {
+                var saveDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "OrpheusApp",
+                    "Uploads"
+                );
+
+                var path = Path.Combine(saveDir, file);
+
+                if (!File.Exists(path))
+                    return Results.NotFound();
+
+                var bytes = File.ReadAllBytes(path);
+                return Results.File(bytes, "image/jpeg");
+            });
+
+            app.MapPost("/disconnect", async (HttpRequest req) =>
+            {
+                string? token = req.Headers["X-Token"];
+                if (token != Token)
+                    return Results.Forbid();
+
+                var payload = await JsonSerializer.DeserializeAsync<AccessRequestPayload>(req.Body);
+                if (payload == null || string.IsNullOrWhiteSpace(payload.DeviceName))
+                    return Results.BadRequest();
+
+                var connectionKeys = Connections
+                    .Where(p => p.Value.DeviceName == payload.DeviceName)
+                    .Select(p => p.Key)
+                    .ToList();
+
+                foreach (var key in connectionKeys)
+                    Connections.Remove(key);
+
+                Console.WriteLine($"[DISCONNECT] Device '{payload.DeviceName}' disconnected. " +
+                                  $"Removed {connectionKeys.Count} entries.");
+
+                return Results.Ok(new
+                {
+                    ok = true,
+                    removed = connectionKeys.Count
+                });
+            });
+
+
+
+            try
+            {
+                _app = app;
+                await app.StartAsync();
+            }catch(IOException _)
+            {
+                //TODO: if the port is taken, for example by FileMaker...
+            }
             return json;
         }
 
@@ -182,6 +317,45 @@ namespace MusicNotesEditor.LocalServer
                 _app = null;
             }
         }
+
+        public List<PendingRequest> GetPending()
+        {
+            var list = Connections
+                .Where(p => p.Value.Approved == null)
+                .Select(p => new PendingRequest
+                {
+                    Key = p.Key,
+                    Time = p.Value.Time,
+                    DeviceName = p.Value.DeviceName
+                })
+                .ToList();
+
+            return list;
+        }
+
+        public bool ApproveDevice(string id)
+        {
+            if (Connections.TryGetValue(id, out var req))
+            {
+                req.Approved = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool DenyDevice(string id)
+        {
+            if (Connections.TryGetValue(id, out var req))
+            {
+                req.Approved = false;
+                return true;
+            }
+
+            return false;
+        }
+
+
 
         private static string GetLocalIPv4()
         {
@@ -198,15 +372,32 @@ namespace MusicNotesEditor.LocalServer
 
                 // wybieramy IPv4
                 var addr = props.UnicastAddresses
-                    .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetwork);
+                    .FirstOrDefault(a =>
+                        a.Address.AddressFamily == AddressFamily.InterNetwork &&
+                        IsPrivateIPv4(a.Address));
 
                 // błagam zadziałaj
                 if (addr != null)
                     return addr.Address.ToString();
             }
 
-            // fallback
             return "127.0.0.1";
+        }
+
+        private static bool IsPrivateIPv4(IPAddress ip)
+        {
+            var bytes = ip.GetAddressBytes();
+
+            // 10.x.x.x
+            if (bytes[0] == 10) return true;
+
+            // 172.16.x.x – 172.31.x.x
+            if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+
+            // 192.168.x.x
+            if (bytes[0] == 192 && bytes[1] == 168) return true;
+
+            return false;
         }
 
 

@@ -15,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
 
 
 namespace MusicNotesEditor.Views
@@ -37,6 +38,9 @@ namespace MusicNotesEditor.Views
             InitializeComponent();
             filesListView.ItemsSource = fileItems;
             UpdateFileCount();
+
+
+            Unloaded += FileArrangerPage_Unloaded;
         }
 
         private void BtnSelectFiles_Click(object sender, RoutedEventArgs e)
@@ -598,15 +602,27 @@ namespace MusicNotesEditor.Views
 
         private async void btnConnectEurydice_Click(object sender, RoutedEventArgs e)
         {
-            var srv = new CertAndServer();
-            var json = await srv.StartServerAsync();
+            if (_server is null)
+            {
+                _server = new CertAndServer();
+            }
 
-            var win = new QrConnectWindow(json);
+            var json = await _server.StartServerAsync();
+
+            var win = new QrConnectWindow(json, _server);
             win.Owner = Window.GetWindow(this);
             win.ShowDialog();
         }
 
 
+        private async void FileArrangerPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (_server != null)
+            {
+                await _server.StopServerAsync();
+                _server = null;
+            }
+        }
 
     }
 
