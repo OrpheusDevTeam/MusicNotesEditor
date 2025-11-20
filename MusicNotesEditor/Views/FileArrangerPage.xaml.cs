@@ -249,11 +249,17 @@ namespace MusicNotesEditor.Views
                 dynamic results = JsonConvert.DeserializeObject(cleanJson);
                 Console.WriteLine(results);
                 // Access properties safely
-                string status = results.status; 
-                string filePath = results.filepath;
-                Console.WriteLine($"Status: {status}, FilePath: {filePath}");
-
-                NavigationService.Navigate(new MusicEditorPage(filePath));
+                string status = results.status;
+                if (status == "success")
+                {
+                    string filePath = results.filepath;
+                    Console.WriteLine($"Status: {status}, FilePath: {filePath}");
+                    NavigationService.Navigate(new MusicEditorPage(filePath));
+                } else
+                {
+                    string error = results.error;
+                    Console.WriteLine($"Status: {status}, Error: {error}");
+                }
             }
             catch (Exception ex)
             {

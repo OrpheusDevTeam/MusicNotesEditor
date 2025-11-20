@@ -32,6 +32,15 @@
     <Resource Update="Assets\logo_orpheus.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Resource>
+    <Resource Update="Assets\musicxml.xsd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Update="Assets\xlink.xsd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Update="Assets\xml.xsd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>

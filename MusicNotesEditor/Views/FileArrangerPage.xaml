@@ -3,7 +3,10 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Title="Arrange Files - Reorder PDF Pages and Images">
     <Viewbox Stretch="Fill">
-        <Grid Width="1200" Height="700" Background="#FF353242">
+        <Grid Width="1200" Height="700">
+            <Grid.Background>
+                <ImageBrush ImageSource="/Assets/background.png" Stretch="UniformToFill"/>
+            </Grid.Background>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*"/>
                 <!-- 30% for sidebar -->
