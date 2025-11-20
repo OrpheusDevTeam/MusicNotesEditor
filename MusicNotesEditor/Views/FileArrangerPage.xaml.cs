@@ -16,6 +16,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using Microsoft.Win32;
+using MusicNotesEditor.ViewModels;
+using Newtonsoft.Json;
 
 
 namespace MusicNotesEditor.Views
@@ -249,12 +252,24 @@ namespace MusicNotesEditor.Views
 
                 // Process files with Python
                 string pythonResult = await ProcessFilesWithPythonAsync(orderedFiles, progress);
-
-
-                
-                // Python processing successful, navigate to Music Editor
-                // You might want to pass the pythonResult to the MusicEditorPage
-                NavigationService.Navigate(new MusicEditorPage(pythonResult));
+                Console.WriteLine(pythonResult);
+                // Clean the Python output (remove any extra console output)
+                string cleanJson = ExtractJsonFromOutput(pythonResult);
+                Console.WriteLine(cleanJson);
+                dynamic results = JsonConvert.DeserializeObject(cleanJson);
+                Console.WriteLine(results);
+                // Access properties safely
+                string status = results.status;
+                if (status == "success")
+                {
+                    string filePath = results.filepath;
+                    Console.WriteLine($"Status: {status}, FilePath: {filePath}");
+                    NavigationService.Navigate(new MusicEditorPage(filePath));
+                } else
+                {
+                    string error = results.error;
+                    Console.WriteLine($"Status: {status}, Error: {error}");
+                }
             }
             catch (Exception ex)
             {
@@ -266,6 +281,31 @@ namespace MusicNotesEditor.Views
                 // Re-enable UI
                 SetProcessingUI(false);
             }
+        }
+
+        private string ExtractJsonFromOutput(string pythonOutput)
+        {
+            // If the Python script might output other text before/after JSON
+            // Look for JSON array or object patterns
+            int startIndex = pythonOutput.IndexOf('[');
+            int endIndex = pythonOutput.LastIndexOf(']') + 1;
+
+            if (startIndex >= 0 && endIndex > startIndex)
+            {
+                return pythonOutput.Substring(startIndex, endIndex - startIndex);
+            }
+
+            // If no array, look for object
+            startIndex = pythonOutput.IndexOf('{');
+            endIndex = pythonOutput.LastIndexOf('}') + 1;
+
+            if (startIndex >= 0 && endIndex > startIndex)
+            {
+                return pythonOutput.Substring(startIndex, endIndex - startIndex);
+            }
+
+            // If no clear JSON structure, return as-is
+            return pythonOutput;
         }
 
         private async Task<string> ProcessFilesWithPythonAsync(string[] orderedFiles, IProgress<string> progress)
@@ -304,8 +344,12 @@ namespace MusicNotesEditor.Views
                             if (!string.IsNullOrEmpty(e.Data))
                             {
                                 outputBuilder.AppendLine(e.Data);
-                                progress?.Report($"Processing: {e.Data}");
-                                Console.WriteLine($"Processing: {e.Data}");
+                                // Only show non-JSON messages in UI
+                                if (!e.Data.Trim().StartsWith("[") && !e.Data.Trim().StartsWith("{"))
+                                {
+                                    progress?.Report($"Processing: {e.Data}");
+                                }
+                                Console.WriteLine($"Output: {e.Data}");
                             }
                         };
 
