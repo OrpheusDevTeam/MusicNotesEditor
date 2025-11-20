@@ -86,255 +86,232 @@
 
                 <!-- File List -->
                 <Border Grid.Row="0" Background="#FF131020" CornerRadius="8" Padding="1">
-                    <ListView x:Name="filesListView"
-                              AllowDrop="True"
-                              Background="Transparent"
-                              PreviewDragOver="FilesListView_PreviewDragOver"
-                              Drop="FilesListView_Drop"
-                              BorderThickness="0"
-                              ScrollViewer.VerticalScrollBarVisibility="Auto"
-                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                        <ListView.View>
-                            <GridView>
-                                <!-- Preview Column - 20% (161px) -->
-                                <GridViewColumn Width="161">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="Preview" 
-                                                     Foreground="White"
-                                                     Background="#FF4A4365"
-                                                     BorderBrush="#FF6B5B95"
-                                                     BorderThickness="0,0,0,2"
-                                                     Padding="8,4"
-                                                     FontWeight="SemiBold"
-                                                     HorizontalContentAlignment="Center"/>
-                                    </GridViewColumn.Header>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Button Click="PreviewButton_Click"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Padding="2"
-                                            ToolTip="Click to preview this file"
-                                            Cursor="Hand"
-                                            HorizontalContentAlignment="Center"
-                                            VerticalContentAlignment="Center"
-                                            Height="80">
-                                                <Button.Content>
-                                                    <Image Source="{Binding Thumbnail}"
-                                                   Width="100"
-                                                   Height="70"
-                                                   Stretch="Uniform"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                                </Button.Content>
-                                            </Button>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
+                    <Grid Background="#FF131020">
+                        <!-- Main content area -->
+                        <ScrollViewer x:Name="ListViewScrollViewer"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Background="Transparent">
+                            <ScrollViewer.Resources>
+                                <!-- Working ScrollBar Style - Vertical Only -->
+                                <Style TargetType="ScrollBar">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="Orientation" Value="Vertical">
+                                            <Setter Property="Width" Value="12"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ScrollBar">
+                                                        <Grid>
+                                                            <Track x:Name="PART_Track" 
+                                                                   IsDirectionReversed="true">
+                                                                <Track.Thumb>
+                                                                    <Thumb Background="#FF6B5B95" 
+                                                                           Opacity="0.7">
+                                                                        <Thumb.Style>
+                                                                            <Style TargetType="Thumb">
+                                                                                <Setter Property="Template">
+                                                                                    <Setter.Value>
+                                                                                        <ControlTemplate TargetType="Thumb">
+                                                                                            <Border CornerRadius="6" 
+                                                                                                    Background="{TemplateBinding Background}"
+                                                                                                    BorderThickness="0"/>
+                                                                                        </ControlTemplate>
+                                                                                    </Setter.Value>
+                                                                                </Setter>
+                                                                                <Style.Triggers>
+                                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                                        <Setter Property="Background" Value="#FF8B7BA5"/>
+                                                                                        <Setter Property="Opacity" Value="1"/>
+                                                                                    </Trigger>
+                                                                                    <Trigger Property="IsDragging" Value="True">
+                                                                                        <Setter Property="Background" Value="#FF9B8BB5"/>
+                                                                                        <Setter Property="Opacity" Value="1"/>
+                                                                                    </Trigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Thumb.Style>
+                                                                    </Thumb>
+                                                                </Track.Thumb>
+                                                            </Track>
+                                                        </Grid>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Resources>
 
-                                <!-- Order Column - 10% (81px) -->
-                                <GridViewColumn Width="81" DisplayMemberBinding="{Binding Order}">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="No." 
-                                                     Foreground="White"
-                                                     Background="#FF4A4365"
-                                                     BorderBrush="#FF6B5B95"
-                                                     BorderThickness="0,0,0,2"
-                                                     Padding="8,4"
-                                                     FontWeight="SemiBold"
-                                                     HorizontalContentAlignment="Center"/>
-                                    </GridViewColumn.Header>
-                                </GridViewColumn>
+                            <ListView x:Name="filesListView"
+                                      AllowDrop="True"
+                                      Background="Transparent"
+                                      PreviewDragOver="FilesListView_PreviewDragOver"
+                                      Drop="FilesListView_Drop"
+                                      BorderThickness="0"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                      Width="794">
+                                <!-- Fixed width to account for scrollbar -->
+                                <ListView.View>
+                                    <GridView>
+                                        <!-- Preview Column - 20% (159px) -->
+                                        <GridViewColumn Width="159">
+                                            <GridViewColumn.Header>
+                                                <GridViewColumnHeader Content="Preview" 
+                                                             Foreground="White"
+                                                             Background="#FF4A4365"
+                                                             BorderBrush="#FF6B5B95"
+                                                             BorderThickness="1"
+                                                             Padding="8,6"
+                                                             FontWeight="SemiBold"
+                                                             HorizontalContentAlignment="Center"
+                                                             Margin="2,4,2,4"/>
+                                            </GridViewColumn.Header>
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Click="PreviewButton_Click"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="2"
+                                                    ToolTip="Click to preview this file"
+                                                    Cursor="Hand"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
+                                                    Height="80">
+                                                        <Button.Content>
+                                                            <Image Source="{Binding Thumbnail}"
+                                                           Width="100"
+                                                           Height="70"
+                                                           Stretch="Uniform"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                                        </Button.Content>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
 
-                                <!-- Size Column - 10% (81px) -->
-                                <GridViewColumn Width="90" DisplayMemberBinding="{Binding FileSize}">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="Size" 
-                                                     Foreground="White"
-                                                     Background="#FF4A4365"
-                                                     BorderBrush="#FF6B5B95"
-                                                     BorderThickness="0,0,0,2"
-                                                     Padding="8,4"
-                                                     FontWeight="SemiBold"
-                                                     HorizontalContentAlignment="Center"/>
-                                    </GridViewColumn.Header>
-                                </GridViewColumn>
+                                        <!-- Order Column - 10% (79px) -->
+                                        <GridViewColumn Width="79" DisplayMemberBinding="{Binding Order}">
+                                            <GridViewColumn.Header>
+                                                <GridViewColumnHeader Content="No." 
+                                                             Foreground="White"
+                                                             Background="#FF4A4365"
+                                                             BorderBrush="#FF6B5B95"
+                                                             BorderThickness="1"
+                                                             Padding="8,6"
+                                                             FontWeight="SemiBold"
+                                                             HorizontalContentAlignment="Center"
+                                                             Margin="2,4,2,4"/>
+                                            </GridViewColumn.Header>
+                                        </GridViewColumn>
 
-                                <!-- Type Column - 20% (161px) -->
-                                <GridViewColumn Width="161" DisplayMemberBinding="{Binding FileType}">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="Type" 
-                                                     Foreground="White"
-                                                     Background="#FF4A4365"
-                                                     BorderBrush="#FF6B5B95"
-                                                     BorderThickness="0,0,0,2"
-                                                     Padding="8,4"
-                                                     FontWeight="SemiBold"
-                                                     HorizontalContentAlignment="Center"/>
-                                    </GridViewColumn.Header>
-                                </GridViewColumn>
+                                        <!-- Size Column - 10% (79px) -->
+                                        <GridViewColumn Width="79" DisplayMemberBinding="{Binding FileSize}">
+                                            <GridViewColumn.Header>
+                                                <GridViewColumnHeader Content="Size" 
+                                                             Foreground="White"
+                                                             Background="#FF4A4365"
+                                                             BorderBrush="#FF6B5B95"
+                                                             BorderThickness="1"
+                                                             Padding="8,6"
+                                                             FontWeight="SemiBold"
+                                                             HorizontalContentAlignment="Center"
+                                                             Margin="2,4,2,4"/>
+                                            </GridViewColumn.Header>
+                                        </GridViewColumn>
 
-                                <!-- File Name Column - 40% (322px) -->
-                                <GridViewColumn Width="322" DisplayMemberBinding="{Binding FileName}">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="File Name" 
-                                                     Foreground="White"
-                                                     Background="#FF4A4365"
-                                                     BorderBrush="#FF6B5B95"
-                                                     BorderThickness="0,0,0,2"
-                                                     Padding="8,4"
-                                                     FontWeight="SemiBold"
-                                                     HorizontalContentAlignment="Center"/>
-                                    </GridViewColumn.Header>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
+                                        <!-- Type Column - 20% (159px) -->
+                                        <GridViewColumn Width="159" DisplayMemberBinding="{Binding FileType}">
+                                            <GridViewColumn.Header>
+                                                <GridViewColumnHeader Content="Type" 
+                                                             Foreground="White"
+                                                             Background="#FF4A4365"
+                                                             BorderBrush="#FF6B5B95"
+                                                             BorderThickness="1"
+                                                             Padding="8,6"
+                                                             FontWeight="SemiBold"
+                                                             HorizontalContentAlignment="Center"
+                                                             Margin="2,4,2,4"/>
+                                            </GridViewColumn.Header>
+                                        </GridViewColumn>
 
-                        <!-- ListView Resources for ScrollBar and Text Alignment -->
-                        <ListView.Resources>
-                            <!-- Center aligned text for all GridView cells -->
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                                <Setter Property="TextAlignment" Value="Center"/>
-                                <Setter Property="Padding" Value="8,4"/>
-                            </Style>
+                                        <!-- File Name Column - 40% (318px) -->
+                                        <GridViewColumn Width="318" DisplayMemberBinding="{Binding FileName}">
+                                            <GridViewColumn.Header>
+                                                <GridViewColumnHeader Content="File Name" 
+                                                             Foreground="White"
+                                                             Background="#FF4A4365"
+                                                             BorderBrush="#FF6B5B95"
+                                                             BorderThickness="1"
+                                                             Padding="8,6"
+                                                             FontWeight="SemiBold"
+                                                             HorizontalContentAlignment="Center"
+                                                             Margin="2,4,2,4"/>
+                                            </GridViewColumn.Header>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
 
-                            <!-- Disable column resizing and reordering -->
-                            <Style TargetType="GridViewColumnHeader">
-                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                <Setter Property="Cursor" Value="Arrow"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="GridViewColumnHeader">
-                                            <Grid>
-                                                <Border Background="{TemplateBinding Background}"
-                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                                        Padding="{TemplateBinding Padding}">
-                                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                                      RecognizesAccessKey="True"/>
-                                                </Border>
-                                            </Grid>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
+                                <!-- ListView Resources for ScrollBar and Text Alignment -->
+                                <ListView.Resources>
+                                    <!-- Center aligned text for all GridView cells -->
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="TextAlignment" Value="Center"/>
+                                        <Setter Property="Padding" Value="8,4"/>
+                                    </Style>
 
-                            <!-- Working ScrollBar Style - Vertical Only -->
-                            <Style TargetType="ScrollBar">
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="BorderBrush" Value="Transparent"/>
-                                <Style.Triggers>
-                                    <Trigger Property="Orientation" Value="Vertical">
-                                        <Setter Property="Width" Value="12"/>
+                                    <!-- Floating rounded column headers -->
+                                    <Style TargetType="GridViewColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                        <Setter Property="Cursor" Value="Arrow"/>
                                         <Setter Property="Template">
                                             <Setter.Value>
-                                                <ControlTemplate TargetType="ScrollBar">
-                                                    <Grid>
-                                                        <Track x:Name="PART_Track" 
-                                                               IsDirectionReversed="true">
-                                                            <Track.Thumb>
-                                                                <Thumb Background="#FF6B5B95" 
-                                                                       Opacity="0.7">
-                                                                    <Thumb.Style>
-                                                                        <Style TargetType="Thumb">
-                                                                            <Setter Property="Template">
-                                                                                <Setter.Value>
-                                                                                    <ControlTemplate TargetType="Thumb">
-                                                                                        <Border CornerRadius="6" 
-                                                                                                Background="{TemplateBinding Background}"
-                                                                                                BorderThickness="0"/>
-                                                                                    </ControlTemplate>
-                                                                                </Setter.Value>
-                                                                            </Setter>
-                                                                            <Style.Triggers>
-                                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                                    <Setter Property="Background" Value="#FF8B7BA5"/>
-                                                                                    <Setter Property="Opacity" Value="1"/>
-                                                                                </Trigger>
-                                                                                <Trigger Property="IsDragging" Value="True">
-                                                                                    <Setter Property="Background" Value="#FF9B8BB5"/>
-                                                                                    <Setter Property="Opacity" Value="1"/>
-                                                                                </Trigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </Thumb.Style>
-                                                                </Thumb>
-                                                            </Track.Thumb>
-                                                        </Track>
-                                                    </Grid>
+                                                <ControlTemplate TargetType="GridViewColumnHeader">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            Padding="{TemplateBinding Padding}"
+                                                            Margin="{TemplateBinding Margin}"
+                                                            CornerRadius="12">
+                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                          RecognizesAccessKey="True"/>
+                                                    </Border>
                                                 </ControlTemplate>
                                             </Setter.Value>
                                         </Setter>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
+                                    </Style>
+                                </ListView.Resources>
 
-                            <!-- Remove the corner filler by styling ScrollViewer -->
-                            <Style TargetType="ScrollViewer">
-                                <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
-                                <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Padding" Value="0"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ScrollViewer">
-                                            <Grid Background="{TemplateBinding Background}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="*"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-
-                                                <ScrollContentPresenter Grid.Column="0" 
-                                                                        Grid.Row="0"
-                                                                        Margin="{TemplateBinding Padding}"
-                                                                        Content="{TemplateBinding Content}"
-                                                                        ContentTemplate="{TemplateBinding ContentTemplate}"/>
-
-                                                <ScrollBar x:Name="PART_VerticalScrollBar"
-                                                           Grid.Column="1"
-                                                           Grid.Row="0"
-                                                           Orientation="Vertical"
-                                                           Value="{TemplateBinding VerticalOffset}"
-                                                           Maximum="{TemplateBinding ScrollableHeight}"
-                                                           ViewportSize="{TemplateBinding ViewportHeight}"
-                                                           Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-                                            </Grid>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ListView.Resources>
-
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                <Setter Property="Height" Value="90"/>
-                                <Setter Property="Padding" Value="5"/>
-                                <EventSetter Event="PreviewMouseLeftButtonDown" Handler="ListViewItem_PreviewMouseLeftButtonDown"/>
-                                <EventSetter Event="PreviewMouseMove" Handler="ListViewItem_PreviewMouseMove"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#FF4A4365"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#FF6B5B95"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                    </ListView>
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                        <Setter Property="Height" Value="90"/>
+                                        <Setter Property="Padding" Value="5"/>
+                                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="ListViewItem_PreviewMouseLeftButtonDown"/>
+                                        <EventSetter Event="PreviewMouseMove" Handler="ListViewItem_PreviewMouseMove"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#FF4A4365"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#FF6B5B95"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                            </ListView>
+                        </ScrollViewer>
+                    </Grid>
                 </Border>
 
                 <!-- Action Buttons -->

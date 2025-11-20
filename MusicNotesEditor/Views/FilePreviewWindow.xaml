@@ -4,8 +4,13 @@
         Title="File Preview - {Binding FileItem.FileName}"
         Height="700" Width="800"
         WindowStartupLocation="CenterOwner"
-        MinWidth="600" MinHeight="500">
+        MinWidth="600" MinHeight="500"
+        Background="#FF131020">
     <Grid Margin="10">
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/background.png" Stretch="UniformToFill"/>
+        </Grid.Background>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -14,30 +19,89 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <TextBlock Grid.Row="0" Text="{Binding FileItem.FileName}" 
-                   FontSize="16" FontWeight="Bold" 
-                   HorizontalAlignment="Center" Margin="0,0,0,10"/>
+        <Border Grid.Row="0" Background="#FF4A4365" 
+                BorderBrush="#FF6B5B95" BorderThickness="1"
+                CornerRadius="8" Padding="15,10"
+                Margin="0,0,0,10">
+            <TextBlock Text="{Binding FileItem.FileName}" 
+                       FontSize="16" FontWeight="Bold" 
+                       Foreground="White"
+                       HorizontalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"/>
+        </Border>
 
         <!-- High Resolution Preview -->
-        <Border Grid.Row="1" BorderBrush="Gray" BorderThickness="1" 
-                Background="White" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Grid.Row="1" 
+                BorderBrush="#FF6B5B95" 
+                BorderThickness="2" 
+                Background="#FF2A2438" 
+                CornerRadius="8"
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Center"
+                Padding="10">
             <Image Source="{Binding HighResolutionImage}" 
-                   MaxWidth="750" 
-                   MaxHeight="550"
+                   MaxWidth="700" 
+                   MaxHeight="500"
                    Stretch="Uniform"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"/>
         </Border>
 
         <!-- File Information -->
-        <StackPanel Grid.Row="2" Margin="0,10,0,5">
-            <TextBlock Text="{Binding FileInfo}" FontSize="12" Foreground="Gray"/>
-        </StackPanel>
+        <Border Grid.Row="2" 
+                Background="#FF2A2438"
+                BorderBrush="#FF4A4365"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="10,8"
+                Margin="0,10,0,5">
+            <TextBlock Text="{Binding FileInfo}" 
+                       FontSize="12" 
+                       Foreground="LightGray"
+                       TextWrapping="Wrap"
+                       HorizontalAlignment="Center"/>
+        </Border>
 
         <!-- Close Button -->
-        <Button Grid.Row="3" Content="Close" 
-                Width="80" Height="30" 
+        <Button Grid.Row="3" 
+                Content="Close" 
+                Width="100" 
+                Height="35" 
                 HorizontalAlignment="Center"
-                Click="CloseButton_Click"/>
+                Margin="0,10,0,0"
+                Background="#FF4A4365"
+                Foreground="White"
+                BorderBrush="#FF6B5B95"
+                FontWeight="SemiBold"
+                Click="CloseButton_Click">
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="6">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                      VerticalAlignment="Center"
+                                                      Margin="{TemplateBinding Padding}"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#FF5A5375"/>
+                            <Setter Property="BorderBrush" Value="#FF7B6BA5"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#FF6B5B95"/>
+                            <Setter Property="BorderBrush" Value="#FF8B7BA5"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
     </Grid>
 </Window>
