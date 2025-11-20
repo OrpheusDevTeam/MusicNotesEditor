@@ -49,4 +49,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MusicNotesEditor.LocalServer\MusicNotesEditor.LocalServer.csproj" />
+  </ItemGroup>
+
 </Project>

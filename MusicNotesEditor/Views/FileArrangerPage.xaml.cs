@@ -1,3 +1,6 @@
+using Microsoft.Win32;
+using MusicNotesEditor.LocalServer;
+using MusicNotesEditor.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
 using Microsoft.Win32;
 using MusicNotesEditor.ViewModels;
 using Newtonsoft.Json;
@@ -29,11 +33,17 @@ namespace MusicNotesEditor.Views
 
         public string[] SelectedFiles => fileItems.Select(f => f.FilePath).ToArray();
 
+        private CertAndServer? _server;
+
+
         public FileArrangerPage()
         {
             InitializeComponent();
             filesListView.ItemsSource = fileItems;
             UpdateFileCount();
+
+
+            Unloaded += FileArrangerPage_Unloaded;
         }
 
         private void BtnSelectFiles_Click(object sender, RoutedEventArgs e)
@@ -634,7 +644,29 @@ namespace MusicNotesEditor.Views
             }
         }
 
+        private async void btnConnectEurydice_Click(object sender, RoutedEventArgs e)
+        {
+            if (_server is null)
+            {
+                _server = new CertAndServer();
+            }
 
+            var json = await _server.StartServerAsync();
+
+            var win = new QrConnectWindow(json, _server);
+            win.Owner = Window.GetWindow(this);
+            win.ShowDialog();
+        }
+
+
+        private async void FileArrangerPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (_server != null)
+            {
+                await _server.StopServerAsync();
+                _server = null;
+            }
+        }
 
     }
 
