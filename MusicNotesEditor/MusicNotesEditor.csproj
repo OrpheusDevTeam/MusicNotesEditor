@@ -29,18 +29,24 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Remove="Assets\musicxml.xsd" />
+    <Resource Remove="Assets\xlink.xsd" />
+    <Resource Remove="Assets\xml.xsd" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Update="Assets\logo_orpheus.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Resource>
-    <Resource Update="Assets\musicxml.xsd">
+    <None Update="Assets\musicxml.xsd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Update="Assets\xlink.xsd">
+    </None>
+    <None Update="Assets\xlink.xsd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Update="Assets\xml.xsd">
+    </None>
+    <None Update="Assets\xml.xsd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
+    </None>
   </ItemGroup>
 
 </Project>
