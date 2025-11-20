@@ -7,7 +7,6 @@
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Padding" Value="10,6"/>
         <Setter Property="Margin" Value="5"/>
-        <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
 
@@ -16,7 +15,7 @@
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
                             Background="{TemplateBinding Background}"
-                            CornerRadius="6"
+                            CornerRadius="8"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center"
                                           VerticalAlignment="Center"

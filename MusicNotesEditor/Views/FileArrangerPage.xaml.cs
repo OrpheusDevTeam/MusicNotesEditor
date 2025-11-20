@@ -5,24 +5,31 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
+using MusicNotesEditor.ViewModels;
+using Newtonsoft.Json;
+
 
 namespace MusicNotesEditor.Views
 {
-    public partial class FileArrangerWindow : Window
+    public partial class FileArrangerPage : Page
     {
         private ObservableCollection<FileItem> fileItems = new ObservableCollection<FileItem>();
         private Point startPoint;
         private FileItem draggedItem;
 
+        private readonly FileArrangerViewModel viewModel = new FileArrangerViewModel();
+
         public string[] SelectedFiles => fileItems.Select(f => f.FilePath).ToArray();
 
-        public FileArrangerWindow()
+        public FileArrangerPage()
         {
             InitializeComponent();
             filesListView.ItemsSource = fileItems;
@@ -44,7 +51,7 @@ namespace MusicNotesEditor.Views
             }
         }
 
-        private void AddFiles(string[] filePaths)
+        private async void AddFiles(string[] filePaths)
         {
             foreach (string filePath in filePaths)
             {
@@ -64,6 +71,7 @@ namespace MusicNotesEditor.Views
                     };
 
                     fileItems.Add(fileItem);
+                    await GenerateThumbnailAsync(fileItem);
                 }
                 catch (Exception ex)
                 {
@@ -71,7 +79,6 @@ namespace MusicNotesEditor.Views
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            GenerateThumbnails();
             UpdateFileCount();
         }
 
@@ -82,7 +89,7 @@ namespace MusicNotesEditor.Views
                 if (button.DataContext is FileItem fileItem)
                 {
                     var previewWindow = new FilePreviewWindow(fileItem);
-                    previewWindow.Owner = this;
+                    previewWindow.Owner = Window.GetWindow(this); // Get the parent window
                     previewWindow.ShowDialog();
                 }
             }
@@ -144,7 +151,6 @@ namespace MusicNotesEditor.Views
         {
             if (e.Data.GetData(typeof(FileItem)) is FileItem sourceItem)
             {
-                // Use the local method instead of extension method
                 var targetItem = FindVisualParent<ListViewItem>((DependencyObject)e.OriginalSource)?.Content as FileItem;
 
                 if (targetItem != null && sourceItem != targetItem)
@@ -205,7 +211,12 @@ namespace MusicNotesEditor.Views
             UpdateFileCount();
         }
 
-        private void BtnProcess_Click(object sender, RoutedEventArgs e)
+        private void BtnBack_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService?.GoBack();
+        }
+
+        private async void BtnProcess_Click(object sender, RoutedEventArgs e)
         {
             if (fileItems.Count == 0)
             {
@@ -214,14 +225,185 @@ namespace MusicNotesEditor.Views
                 return;
             }
 
-            this.DialogResult = true;
-            this.Close();
+            // Get the ordered file paths
+            string[] orderedFiles = SelectedFiles;
+
+            try
+            {
+                // Disable UI during processing
+                SetProcessingUI(true);
+
+                // Show processing dialog or progress
+                var progress = new Progress<string>(message =>
+                {
+                    // Update your UI with progress messages
+                    lblFileCount.Text = message;
+                });
+
+                // Process files with Python
+                string pythonResult = await ProcessFilesWithPythonAsync(orderedFiles, progress);
+                Console.WriteLine(pythonResult);
+                // Clean the Python output (remove any extra console output)
+                string cleanJson = ExtractJsonFromOutput(pythonResult);
+                Console.WriteLine(cleanJson);
+                dynamic results = JsonConvert.DeserializeObject(cleanJson);
+                Console.WriteLine(results);
+                // Access properties safely
+                string status = results.status;
+                if (status == "success")
+                {
+                    string filePath = results.filepath;
+                    Console.WriteLine($"Status: {status}, FilePath: {filePath}");
+                    NavigationService.Navigate(new MusicEditorPage(filePath));
+                } else
+                {
+                    string error = results.error;
+                    Console.WriteLine($"Status: {status}, Error: {error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error processing files: {ex.Message}\n\nPlease check that Python is installed and the script path is correct.",
+                    "Processing Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                // Re-enable UI
+                SetProcessingUI(false);
+            }
+        }
+
+        private string ExtractJsonFromOutput(string pythonOutput)
+        {
+            // If the Python script might output other text before/after JSON
+            // Look for JSON array or object patterns
+            int startIndex = pythonOutput.IndexOf('[');
+            int endIndex = pythonOutput.LastIndexOf(']') + 1;
+
+            if (startIndex >= 0 && endIndex > startIndex)
+            {
+                return pythonOutput.Substring(startIndex, endIndex - startIndex);
+            }
+
+            // If no array, look for object
+            startIndex = pythonOutput.IndexOf('{');
+            endIndex = pythonOutput.LastIndexOf('}') + 1;
+
+            if (startIndex >= 0 && endIndex > startIndex)
+            {
+                return pythonOutput.Substring(startIndex, endIndex - startIndex);
+            }
+
+            // If no clear JSON structure, return as-is
+            return pythonOutput;
+        }
+
+        private async Task<string> ProcessFilesWithPythonAsync(string[] orderedFiles, IProgress<string> progress)
+        {
+            string pythonScriptPath = @"C:\Users\jmosz\Desktop\Studia\ZPI Team Project\OMR\main.py";
+            string pythonExecutable = "python";
+
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    progress?.Report("Starting Python script...");
+                    Console.WriteLine("Starting Python script...");
+
+                    string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
+
+                    var processStartInfo = new ProcessStartInfo
+                    {
+                        FileName = pythonExecutable,
+                        Arguments = arguments,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        WorkingDirectory = Path.GetDirectoryName(pythonScriptPath)
+                    };
+
+                    using (var process = new Process())
+                    {
+                        process.StartInfo = processStartInfo;
+
+                        var outputBuilder = new StringBuilder();
+                        var errorBuilder = new StringBuilder();
+
+                        process.OutputDataReceived += (sender, e) => {
+                            if (!string.IsNullOrEmpty(e.Data))
+                            {
+                                outputBuilder.AppendLine(e.Data);
+                                // Only show non-JSON messages in UI
+                                if (!e.Data.Trim().StartsWith("[") && !e.Data.Trim().StartsWith("{"))
+                                {
+                                    progress?.Report($"Processing: {e.Data}");
+                                }
+                                Console.WriteLine($"Output: {e.Data}");
+                            }
+                        };
+
+                        process.ErrorDataReceived += (sender, e) => {
+                            if (!string.IsNullOrEmpty(e.Data))
+                                errorBuilder.AppendLine(e.Data);
+                        };
+
+                        progress?.Report("Executing Python script...");
+                        Console.WriteLine("Executing Python script...");
+                        process.Start();
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+
+                        bool completed = process.WaitForExit(30000);
+
+                        if (!completed)
+                        {
+                            process.Kill();
+                            throw new TimeoutException("Python script execution timed out");
+                        }
+
+                        if (process.ExitCode != 0)
+                        {
+                            string errorMessage = errorBuilder.ToString();
+                            throw new Exception($"Python script failed: {errorMessage}");
+                        }
+
+                        progress?.Report("Python script completed successfully");
+                        Console.WriteLine("Python script completed successfully");
+                        return outputBuilder.ToString();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"Error: {ex.Message}");
+                    throw new Exception($"Failed to execute Python script: {ex.Message}", ex);
+                }
+            });
+        }
+
+        private void SetProcessingUI(bool isProcessing)
+        {
+            btnProcess.IsEnabled = !isProcessing;
+            btnSelectFiles.IsEnabled = !isProcessing;
+            btnImportMusicXml.IsEnabled = !isProcessing;
+            btnMoveUp.IsEnabled = !isProcessing;
+            btnMoveDown.IsEnabled = !isProcessing;
+            btnRemove.IsEnabled = !isProcessing;
+            btnClearAll.IsEnabled = !isProcessing;
+
+            if (isProcessing)
+            {
+                btnProcess.Content = "Processing...";
+            }
+            else
+            {
+                btnProcess.Content = "Process";
+            }
         }
 
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false;
-            this.Close();
+            NavigationService?.GoBack();
         }
 
         #endregion
@@ -239,17 +421,6 @@ namespace MusicNotesEditor.Views
         {
             lblFileCount.Text = $"{fileItems.Count} file(s) selected";
             btnProcess.IsEnabled = fileItems.Count > 0;
-        }
-
-        private async void GenerateThumbnails()
-        {
-            foreach (var fileItem in fileItems)
-            {
-                if (fileItem.Thumbnail == null)
-                {
-                    await GenerateThumbnailAsync(fileItem);
-                }
-            }
         }
 
         private async Task GenerateThumbnailAsync(FileItem fileItem)
@@ -311,62 +482,18 @@ namespace MusicNotesEditor.Views
                     bitmapImage.BeginInit();
                     bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
                     bitmapImage.StreamSource = fileStream;
-                    bitmapImage.DecodePixelWidth = 120; // Thumbnail size
-                    bitmapImage.DecodePixelHeight = 90;
-                    bitmapImage.CreateOptions = BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat;
+                    bitmapImage.DecodePixelWidth = 120; // Reduce size for thumbnail
+                    bitmapImage.DecodePixelHeight = 90; // Maintain aspect ratio
+                    bitmapImage.Rotation = Rotation.Rotate0;
                     bitmapImage.EndInit();
                 }
-
-                // If the image has transparency, convert it to a format that supports it better
-                if (bitmapImage.Format == PixelFormats.Bgr32 ||
-                    bitmapImage.Format == PixelFormats.Bgra32 ||
-                    bitmapImage.Format == PixelFormats.Pbgra32)
-                {
-                    bitmapImage = ConvertToCompatibleFormat(bitmapImage);
-                }
-
-                bitmapImage.Freeze();
+                bitmapImage.Freeze(); // Important for cross-thread access
                 return bitmapImage;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error loading image {imagePath}: {ex.Message}");
-                Debug.WriteLine($"Image format: {Path.GetExtension(imagePath)}");
                 return CreateDefaultThumbnail("Image Error");
-            }
-        }
-
-        private BitmapImage ConvertToCompatibleFormat(BitmapImage sourceImage)
-        {
-            try
-            {
-                var formatConvertedBitmap = new FormatConvertedBitmap();
-                formatConvertedBitmap.BeginInit();
-                formatConvertedBitmap.Source = sourceImage;
-                formatConvertedBitmap.DestinationFormat = PixelFormats.Pbgra32; // Standard format that works well
-                formatConvertedBitmap.EndInit();
-                formatConvertedBitmap.Freeze();
-
-                // Convert back to BitmapImage
-                var bitmapImage = new BitmapImage();
-                using (var stream = new MemoryStream())
-                {
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(formatConvertedBitmap));
-                    encoder.Save(stream);
-                    stream.Position = 0;
-
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = stream;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze();
-                return bitmapImage;
-            }
-            catch
-            {
-                return sourceImage; // Return original if conversion fails
             }
         }
 
@@ -470,6 +597,44 @@ namespace MusicNotesEditor.Views
                 return null;
             }
         }
+
+        private void BtnImportMusicXml_Click(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "MusicXML files (*.musicxml, *.xml)|*.musicxml;*.xml|All files (*.*)|*.*",
+                Title = "Select MusicXML File",
+                Multiselect = false
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string musicXmlFilePath = openFileDialog.FileName;
+
+                try
+                {
+                    // Validate the MusicXML file if needed
+                    viewModel.TestData(musicXmlFilePath);
+                    if (viewModel.ValidateMusicXmlWithXsd(musicXmlFilePath))
+                    {
+                        // Navigate directly to Music Editor with the MusicXML file
+                        NavigationService.Navigate(new MusicEditorPage(musicXmlFilePath));
+                    }
+                    else
+                    {
+                        MessageBox.Show("The selected file is not a valid MusicXML file.",
+                            "Invalid File", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error loading MusicXML file: {ex.Message}",
+                        "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+
 
     }
 
