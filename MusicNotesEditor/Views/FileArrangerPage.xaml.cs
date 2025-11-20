@@ -16,7 +16,6 @@ using Microsoft.Win32;
 using MusicNotesEditor.ViewModels;
 using Newtonsoft.Json;
 
-
 namespace MusicNotesEditor.Views
 {
     public partial class FileArrangerPage : Page
@@ -41,7 +40,7 @@ namespace MusicNotesEditor.Views
             var openFileDialog = new OpenFileDialog
             {
                 Multiselect = true,
-                Filter = "All Supported Files|*.pdf;*.png;*.jpg;*.jpeg|PDF Files|*.pdf|Image Files|*.png;*.jpg;*.jpeg",
+                Filter = "All Supported Files|*.pdf;*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff|PDF Files|*.pdf|Image Files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff",
                 Title = "Select PDF or Image Files"
             };
 
@@ -61,21 +60,40 @@ namespace MusicNotesEditor.Views
                 try
                 {
                     var fileInfo = new FileInfo(filePath);
+
+                    // Validate file exists and is accessible
+                    if (!fileInfo.Exists)
+                    {
+                        MessageBox.Show($"File not found: {filePath}", "Error",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        continue;
+                    }
+
+                    // Check file size (limit to 100MB to prevent memory issues)
+                    if (fileInfo.Length > 100 * 1024 * 1024)
+                    {
+                        MessageBox.Show($"File too large: {filePath} ({FormatFileSize(fileInfo.Length)})\nMaximum size is 100MB.",
+                            "File Too Large", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        continue;
+                    }
+
                     var fileItem = new FileItem
                     {
                         FilePath = filePath,
                         FileName = Path.GetFileName(filePath),
-                        FileType = Path.GetExtension(filePath).ToUpper(),
+                        FileType = Path.GetExtension(filePath).ToUpper().TrimStart('.'),
                         FileSize = FormatFileSize(fileInfo.Length),
                         Order = fileItems.Count + 1
                     };
 
                     fileItems.Add(fileItem);
-                    await GenerateThumbnailAsync(fileItem);
+
+                    // Generate thumbnail in background without blocking UI
+                    _ = Task.Run(async () => await GenerateThumbnailAsync(fileItem));
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error reading file {filePath}: {ex.Message}", "Error",
+                    MessageBox.Show($"Error reading file {Path.GetFileName(filePath)}: {ex.Message}", "Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -84,13 +102,18 @@ namespace MusicNotesEditor.Views
 
         private void PreviewButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button)
+            if (sender is Button button && button.DataContext is FileItem fileItem)
             {
-                if (button.DataContext is FileItem fileItem)
+                try
                 {
                     var previewWindow = new FilePreviewWindow(fileItem);
-                    previewWindow.Owner = Window.GetWindow(this); // Get the parent window
+                    previewWindow.Owner = Window.GetWindow(this);
                     previewWindow.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error opening preview: {ex.Message}", "Preview Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -101,7 +124,7 @@ namespace MusicNotesEditor.Views
             int counter = 0;
             decimal number = bytes;
 
-            while (Math.Round(number / 1024) >= 1)
+            while (Math.Round(number / 1024) >= 1 && counter < suffixes.Length - 1)
             {
                 number /= 1024;
                 counter++;
@@ -161,6 +184,280 @@ namespace MusicNotesEditor.Views
                     fileItems.Move(oldIndex, newIndex);
                     UpdateOrderNumbers();
                 }
+            }
+        }
+
+        #endregion
+
+        #region Thumbnail Generation - FIXED VERSION
+
+        private async Task GenerateThumbnailAsync(FileItem fileItem)
+        {
+            try
+            {
+                // Set loading placeholder on UI thread
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    fileItem.Thumbnail = CreateDefaultThumbnail("Loading...", Colors.LightGray);
+                });
+
+                var thumbnail = await Task.Run(() => CreateThumbnail(fileItem.FilePath));
+
+                if (thumbnail != null)
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        fileItem.Thumbnail = thumbnail;
+                    });
+                }
+                else
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        fileItem.Thumbnail = CreateDefaultThumbnail("Error", Colors.LightPink);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error generating thumbnail for {fileItem.FileName}: {ex.Message}");
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    fileItem.Thumbnail = CreateDefaultThumbnail("Error", Colors.LightPink);
+                });
+            }
+        }
+
+        private BitmapImage CreateThumbnail(string filePath)
+        {
+            var extension = Path.GetExtension(filePath).ToLower();
+
+            try
+            {
+                switch (extension)
+                {
+                    case ".png":
+                    case ".jpg":
+                    case ".jpeg":
+                    case ".bmp":
+                    case ".gif":
+                    case ".tiff":
+                        return CreateImageThumbnail(filePath);
+                    case ".pdf":
+                        return CreatePdfThumbnail(filePath);
+                    default:
+                        return CreateDefaultThumbnail(extension.TrimStart('.'), Colors.LightBlue);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating thumbnail for {filePath}: {ex.Message}");
+                return CreateDefaultThumbnail("Error", Colors.LightPink);
+            }
+        }
+
+        private BitmapImage CreateImageThumbnail(string imagePath)
+        {
+            try
+            {
+                var bitmapImage = new BitmapImage();
+
+                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.CreateOptions = BitmapCreateOptions.IgnoreImageCache | BitmapCreateOptions.PreservePixelFormat;
+                    bitmapImage.StreamSource = fileStream;
+                    bitmapImage.DecodePixelWidth = 120;
+                    bitmapImage.DecodePixelHeight = 90;
+                    bitmapImage.Rotation = Rotation.Rotate0;
+
+                    // Handle different image formats and color spaces
+                    if (Path.GetExtension(imagePath).ToLower() == ".tiff")
+                    {
+                        bitmapImage.CreateOptions |= BitmapCreateOptions.IgnoreColorProfile;
+                    }
+
+                    bitmapImage.EndInit();
+                }
+
+                // Ensure image is fully loaded and frozen for cross-thread access
+                if (bitmapImage.IsDownloading)
+                {
+                    bitmapImage.DownloadCompleted += (s, e) => bitmapImage.Freeze();
+                }
+                else
+                {
+                    bitmapImage.Freeze();
+                }
+
+                return bitmapImage;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading image {imagePath}: {ex.Message}");
+
+                // Try alternative approach for problematic images
+                return CreateImageThumbnailAlternative(imagePath);
+            }
+        }
+
+        private BitmapImage CreateImageThumbnailAlternative(string imagePath)
+        {
+            try
+            {
+                // Alternative approach using BitmapFrame
+                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var bitmapFrame = BitmapFrame.Create(
+                        fileStream,
+                        BitmapCreateOptions.None,
+                        BitmapCacheOption.OnLoad);
+
+                    var resizedBitmap = new TransformedBitmap(
+                        bitmapFrame,
+                        new ScaleTransform(
+                            120.0 / bitmapFrame.PixelWidth,
+                            90.0 / bitmapFrame.PixelHeight));
+
+                    var bitmapImage = new BitmapImage();
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        var encoder = new PngBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(resizedBitmap));
+                        encoder.Save(memoryStream);
+                        memoryStream.Position = 0;
+
+                        bitmapImage.BeginInit();
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmapImage.StreamSource = memoryStream;
+                        bitmapImage.EndInit();
+                    }
+
+                    bitmapImage.Freeze();
+                    return bitmapImage;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Alternative image loading also failed for {imagePath}: {ex.Message}");
+                return CreateDefaultThumbnail("Image", Colors.LightYellow);
+            }
+        }
+
+        private BitmapImage CreatePdfThumbnail(string pdfPath)
+        {
+            try
+            {
+                // For PDF files, you'll need a PDF rendering library
+                // For now, return a nice PDF placeholder
+                return CreateDefaultThumbnail("PDF", Colors.LightCoral);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating PDF thumbnail for {pdfPath}: {ex.Message}");
+                return CreateDefaultThumbnail("PDF", Colors.LightCoral);
+            }
+        }
+
+        private BitmapImage CreateDefaultThumbnail(string text, Color backgroundColor)
+        {
+            try
+            {
+                var drawingVisual = new DrawingVisual();
+                using (var drawingContext = drawingVisual.RenderOpen())
+                {
+                    // Draw background with subtle gradient
+                    var gradient = new LinearGradientBrush(
+                        Color.FromArgb(255, backgroundColor.R, backgroundColor.G, backgroundColor.B),
+                        Color.FromArgb(255,
+                            (byte)(backgroundColor.R * 0.8),
+                            (byte)(backgroundColor.G * 0.8),
+                            (byte)(backgroundColor.B * 0.8)),
+                        45);
+
+                    drawingContext.DrawRectangle(gradient, null, new Rect(0, 0, 100, 70));
+
+                    // Draw border
+                    drawingContext.DrawRectangle(null, new Pen(Brushes.DarkGray, 1), new Rect(0, 0, 100, 70));
+
+                    // Draw text with better formatting
+                    var formattedText = new FormattedText(
+                        text,
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        FlowDirection.LeftToRight,
+                        new Typeface("Arial"),
+                        10,
+                        Brushes.Black,
+                        VisualTreeHelper.GetDpi(drawingVisual).PixelsPerDip);
+
+                    // Center the text
+                    double x = (100 - formattedText.Width) / 2;
+                    double y = (70 - formattedText.Height) / 2;
+                    drawingContext.DrawText(formattedText, new Point(x, y));
+                }
+
+                var renderTarget = new RenderTargetBitmap(100, 70, 96, 96, PixelFormats.Pbgra32);
+                renderTarget.Render(drawingVisual);
+
+                // Convert to BitmapImage
+                var bitmapImage = new BitmapImage();
+                using (var stream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating default thumbnail: {ex.Message}");
+                return CreateSimpleColorThumbnail(backgroundColor);
+            }
+        }
+
+        private BitmapImage CreateSimpleColorThumbnail(Color color)
+        {
+            try
+            {
+                var renderTarget = new RenderTargetBitmap(100, 70, 96, 96, PixelFormats.Pbgra32);
+                var drawingVisual = new DrawingVisual();
+
+                using (var drawingContext = drawingVisual.RenderOpen())
+                {
+                    drawingContext.DrawRectangle(new SolidColorBrush(color), null, new Rect(0, 0, 100, 70));
+                }
+
+                renderTarget.Render(drawingVisual);
+
+                var bitmapImage = new BitmapImage();
+                using (var stream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch
+            {
+                // Ultimate fallback - return null, UI should handle this
+                return null;
             }
         }
 
@@ -255,7 +552,8 @@ namespace MusicNotesEditor.Views
                     string filePath = results.filepath;
                     Console.WriteLine($"Status: {status}, FilePath: {filePath}");
                     NavigationService.Navigate(new MusicEditorPage(filePath));
-                } else
+                }
+                else
                 {
                     string error = results.error;
                     Console.WriteLine($"Status: {status}, Error: {error}");
@@ -414,188 +712,12 @@ namespace MusicNotesEditor.Views
             {
                 fileItems[i].Order = i + 1;
             }
-            filesListView.Items.Refresh();
         }
 
         private void UpdateFileCount()
         {
             lblFileCount.Text = $"{fileItems.Count} file(s) selected";
             btnProcess.IsEnabled = fileItems.Count > 0;
-        }
-
-        private async Task GenerateThumbnailAsync(FileItem fileItem)
-        {
-            try
-            {
-                // Set a temporary placeholder immediately
-                fileItem.Thumbnail = CreateDefaultThumbnail("Loading...");
-
-                var thumbnail = await Task.Run(() => CreateThumbnail(fileItem.FilePath));
-                if (thumbnail != null)
-                {
-                    fileItem.Thumbnail = thumbnail;
-                }
-                else
-                {
-                    fileItem.Thumbnail = CreateDefaultThumbnail("Error");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error generating thumbnail for {fileItem.FileName}: {ex.Message}");
-                fileItem.Thumbnail = CreateDefaultThumbnail("Error");
-            }
-        }
-
-        private BitmapImage CreateThumbnail(string filePath)
-        {
-            var extension = Path.GetExtension(filePath).ToLower();
-
-            try
-            {
-                switch (extension)
-                {
-                    case ".png":
-                    case ".jpg":
-                    case ".jpeg":
-                        return CreateImageThumbnail(filePath);
-                    case ".pdf":
-                        return CreatePdfThumbnail(filePath);
-                    default:
-                        return CreateDefaultThumbnail("Unsupported");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error creating thumbnail for {filePath}: {ex.Message}");
-                return CreateDefaultThumbnail("Error");
-            }
-        }
-
-        private BitmapImage CreateImageThumbnail(string imagePath)
-        {
-            try
-            {
-                var bitmapImage = new BitmapImage();
-                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
-                {
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = fileStream;
-                    bitmapImage.DecodePixelWidth = 120; // Reduce size for thumbnail
-                    bitmapImage.DecodePixelHeight = 90; // Maintain aspect ratio
-                    bitmapImage.Rotation = Rotation.Rotate0;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze(); // Important for cross-thread access
-                return bitmapImage;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error loading image {imagePath}: {ex.Message}");
-                return CreateDefaultThumbnail("Image Error");
-            }
-        }
-
-        private BitmapImage CreatePdfThumbnail(string pdfPath)
-        {
-            // For now, return a PDF placeholder
-            return CreateDefaultThumbnail("PDF");
-        }
-
-        private BitmapImage CreateDefaultThumbnail(string text = "Preview")
-        {
-            try
-            {
-                var drawingVisual = new DrawingVisual();
-                using (var drawingContext = drawingVisual.RenderOpen())
-                {
-                    // Draw background
-                    drawingContext.DrawRectangle(Brushes.LightGray, null, new Rect(0, 0, 60, 45));
-
-                    // Draw border
-                    drawingContext.DrawRectangle(null, new Pen(Brushes.DarkGray, 1), new Rect(0, 0, 60, 45));
-
-                    // Draw text
-                    var formattedText = new FormattedText(
-                        text,
-                        System.Globalization.CultureInfo.CurrentCulture,
-                        FlowDirection.LeftToRight,
-                        new Typeface("Arial"),
-                        8, // Smaller font
-                        Brushes.Black,
-                        1.0);
-
-                    // Center the text
-                    double x = (60 - formattedText.Width) / 2;
-                    double y = (45 - formattedText.Height) / 2;
-                    drawingContext.DrawText(formattedText, new Point(x, y));
-                }
-
-                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
-                renderTarget.Render(drawingVisual);
-
-                var bitmapImage = new BitmapImage();
-                using (var stream = new MemoryStream())
-                {
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
-                    encoder.Save(stream);
-                    stream.Position = 0;
-
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = stream;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze();
-                return bitmapImage;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error creating default thumbnail: {ex.Message}");
-                // Return a simple colored rectangle as fallback
-                return CreateSimpleColorThumbnail(Colors.LightGray);
-            }
-        }
-
-        private BitmapImage CreateSimpleColorThumbnail(Color color)
-        {
-            try
-            {
-                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
-                var drawingVisual = new DrawingVisual();
-
-                using (var drawingContext = drawingVisual.RenderOpen())
-                {
-                    drawingContext.DrawRectangle(new SolidColorBrush(color), null, new Rect(0, 0, 60, 45));
-                }
-
-                renderTarget.Render(drawingVisual);
-                renderTarget.Freeze();
-
-                // Convert RenderTargetBitmap to BitmapImage
-                var bitmapImage = new BitmapImage();
-                using (var stream = new MemoryStream())
-                {
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
-                    encoder.Save(stream);
-                    stream.Position = 0;
-
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = stream;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze();
-                return bitmapImage;
-            }
-            catch
-            {
-                // Ultimate fallback - return null
-                return null;
-            }
         }
 
         private void BtnImportMusicXml_Click(object sender, RoutedEventArgs e)
@@ -617,7 +739,6 @@ namespace MusicNotesEditor.Views
                     viewModel.TestData(musicXmlFilePath);
                     if (viewModel.ValidateMusicXmlWithXsd(musicXmlFilePath))
                     {
-                        // Navigate directly to Music Editor with the MusicXML file
                         NavigationService.Navigate(new MusicEditorPage(musicXmlFilePath));
                     }
                     else
@@ -633,9 +754,6 @@ namespace MusicNotesEditor.Views
                 }
             }
         }
-
-
-
     }
 
     public class FileItem : INotifyPropertyChanged
