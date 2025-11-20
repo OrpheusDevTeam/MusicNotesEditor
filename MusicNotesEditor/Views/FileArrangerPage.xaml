@@ -17,63 +17,67 @@
             <!-- Sidebar Toolbar -->
             <Border Grid.Column="0" Background="#FF2A2438" Margin="10" CornerRadius="8">
                 <StackPanel Orientation="Vertical" Margin="15">
-                    <TextBlock Text="File Arranger" 
-                               Foreground="White" 
-                               FontSize="16" 
-                               FontWeight="Bold" 
-                               Margin="0,0,0,20"
-                               HorizontalAlignment="Center"/>
 
                     <Button x:Name="btnSelectFiles" Content="Select Files" Click="BtnSelectFiles_Click"
-                            Height="35" Margin="0,0,0,10"
+                            Height="30" Margin="0,10,0,10"
                             Background="#FF4A4365"
                             Foreground="White"
                             BorderBrush="#FF6B5B95"/>
 
                     <Button x:Name="btnImportMusicXml" Content="Import MusicXML" Click="BtnImportMusicXml_Click"
-                            Height="35" Margin="0,0,0,10"
+                            Height="30" Margin="0,0,0,10"
                             Background="#FF4A4365"
                             Foreground="White"
                             BorderBrush="#FF6B5B95"/>
 
-                    <Rectangle Height="1" Margin="0,10" Fill="#FF6B5B95" Opacity="0.5"/>
-
-                    <Button x:Name="btnMoveUp" Content="Move Up" Click="BtnMoveUp_Click"
-                            Height="35" Margin="0,0,0,8"
+                    <Button x:Name="btnConnectEuridice" Content="Upload From App" Click="BtnConnectEurydice_Click"
+                            Height="30" Margin="0,0,0,8"
                             Background="#FF4A4365"
                             Foreground="White"
                             BorderBrush="#FF6B5B95"/>
 
-                    <Button x:Name="btnMoveDown" Content="Move Down" Click="BtnMoveDown_Click"
-                            Height="35" Margin="0,0,0,8"
+                    <Rectangle Height="1" Margin="0,0,0,8" Fill="#FF6B5B95" Opacity="0.5"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="btnMoveUp" Content="Move Up" Click="BtnMoveUp_Click"
+                            Height="30" Margin="0,0,4,0"
+                            Grid.Column="0"
                             Background="#FF4A4365"
                             Foreground="White"
                             BorderBrush="#FF6B5B95"/>
+
+                        <Button x:Name="btnMoveDown" Content="Move Down" Click="BtnMoveDown_Click"
+                            Height="30" Margin="4,0,0,0"
+                            Grid.Column="1"
+                            Background="#FF4A4365"
+                            Foreground="White"
+                            BorderBrush="#FF6B5B95"/>
+                    </Grid>
+                    
 
                     <Button x:Name="btnRemove" Content="Remove" Click="BtnRemove_Click"
-                            Height="35" Margin="0,0,0,8"
+                            Height="30" Margin="0,0,0,8"
                             Background="#FF4A4365"
                             Foreground="White"
                             BorderBrush="#FF6B5B95"/>
 
                     <Button x:Name="btnClearAll" Content="Clear All" Click="BtnClearAll_Click"
-                            Height="35" Margin="0,0,0,20"
+                            Height="30" Margin="0,0,0,8"
                             Background="#FFD32F2F"
                             Foreground="White"
                             BorderBrush="#FFB71C1C"/>
 
-                    <Rectangle Height="1" Margin="0,10" Fill="#FF6B5B95" Opacity="0.5"/>
+                    <Rectangle Height="1" Fill="#FF6B5B95" Opacity="0.5"/>
 
                     <!-- Status moved to sidebar -->
-                    <TextBlock x:Name="lblFileCount" Foreground="LightGray" FontSize="12" 
-                               Margin="0,10,0,5" TextWrapping="Wrap" HorizontalAlignment="Center"/>
-
-                    <Button x:Name="btnBack" Content="Back to Menu" Click="BtnBack_Click"
-                            Height="35" Margin="0,10,0,0"
-                            Background="Transparent"
-                            Foreground="#FF6B5B95"
-                            BorderBrush="#FF6B5B95"
-                            BorderThickness="1"/>
+                    <Frame x:Name="QR_Frame"  
+                       NavigationUIVisibility="Hidden"
+                       Background="#2D2D30"
+                       BorderThickness="0"/>
                 </StackPanel>
             </Border>
 

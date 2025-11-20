@@ -2,13 +2,25 @@
 using QRCoder;
 using System.IO;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
 
 namespace MusicNotesEditor.Views
 {
-    public partial class QrConnectWindow : Window
+    public partial class QrConnectWindow : Page
     {
 
         private readonly CertAndServer _server;
@@ -82,9 +94,11 @@ namespace MusicNotesEditor.Views
 
             _server.ApproveDevice(_currentRequestId);
 
+            StepsPanel.Visibility = Visibility.Visible;
+            RequestPanel.Visibility = Visibility.Collapsed;
+
             _cts.Cancel();
-            DialogResult = true;
-            Close();
+            
         }
 
         private async void Deny_Click(object sender, RoutedEventArgs e)
@@ -93,6 +107,7 @@ namespace MusicNotesEditor.Views
 
             _server.DenyDevice(_currentRequestId);
 
+            StepsPanel.Visibility = Visibility.Visible;
             RequestPanel.Visibility = Visibility.Collapsed;
             _currentRequestId = null;
         }

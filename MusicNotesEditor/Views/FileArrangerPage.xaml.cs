@@ -40,7 +40,6 @@ namespace MusicNotesEditor.Views
         {
             InitializeComponent();
             filesListView.ItemsSource = fileItems;
-            UpdateFileCount();
 
 
             Unloaded += FileArrangerPage_Unloaded;
@@ -89,7 +88,6 @@ namespace MusicNotesEditor.Views
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            UpdateFileCount();
         }
 
         private void PreviewButton_Click(object sender, RoutedEventArgs e)
@@ -212,13 +210,11 @@ namespace MusicNotesEditor.Views
                 fileItems.Remove(item);
             }
             UpdateOrderNumbers();
-            UpdateFileCount();
         }
 
         private void BtnClearAll_Click(object sender, RoutedEventArgs e)
         {
             fileItems.Clear();
-            UpdateFileCount();
         }
 
         private void BtnBack_Click(object sender, RoutedEventArgs e)
@@ -244,11 +240,7 @@ namespace MusicNotesEditor.Views
                 SetProcessingUI(true);
 
                 // Show processing dialog or progress
-                var progress = new Progress<string>(message =>
-                {
-                    // Update your UI with progress messages
-                    lblFileCount.Text = message;
-                });
+                var progress = new Progress<string>();
 
                 // Process files with Python
                 string pythonResult = await ProcessFilesWithPythonAsync(orderedFiles, progress);
@@ -425,12 +417,6 @@ namespace MusicNotesEditor.Views
                 fileItems[i].Order = i + 1;
             }
             filesListView.Items.Refresh();
-        }
-
-        private void UpdateFileCount()
-        {
-            lblFileCount.Text = $"{fileItems.Count} file(s) selected";
-            btnProcess.IsEnabled = fileItems.Count > 0;
         }
 
         private async Task GenerateThumbnailAsync(FileItem fileItem)
@@ -644,7 +630,7 @@ namespace MusicNotesEditor.Views
             }
         }
 
-        private async void btnConnectEurydice_Click(object sender, RoutedEventArgs e)
+        private async void BtnConnectEurydice_Click(object sender, RoutedEventArgs e)
         {
             if (_server is null)
             {
@@ -654,8 +640,7 @@ namespace MusicNotesEditor.Views
             var json = await _server.StartServerAsync();
 
             var win = new QrConnectWindow(json, _server);
-            win.Owner = Window.GetWindow(this);
-            win.ShowDialog();
+            QR_Frame.Navigate(win);
         }
 
 
