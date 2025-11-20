@@ -635,6 +635,8 @@ namespace MusicNotesEditor.Views
             if (_server is null)
             {
                 _server = new CertAndServer();
+
+                _server.OnImageUploaded += Server_OnImageUploaded;
             }
 
             var json = await _server.StartServerAsync();
@@ -652,6 +654,15 @@ namespace MusicNotesEditor.Views
                 _server = null;
             }
         }
+
+        private void Server_OnImageUploaded(string path)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                AddFiles(new[] { path });
+            });
+        }
+
 
     }
 

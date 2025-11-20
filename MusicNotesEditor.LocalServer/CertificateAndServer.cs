@@ -27,6 +27,8 @@ namespace MusicNotesEditor.LocalServer
 
         private readonly Dictionary<string, DeviceRequest> Connections = new();
 
+        public event Action<string>? OnImageUploaded;
+
         private static string GenerateSecureToken()
         {
             Span<byte> bytes = stackalloc byte[16];
@@ -211,6 +213,8 @@ namespace MusicNotesEditor.LocalServer
                 await req.Body.CopyToAsync(fs);
                 await fs.FlushAsync();
 
+                OnImageUploaded?.Invoke(savePath);
+
                 return Results.Ok(new { ok = true, file = name, path = savePath });
             });
 
@@ -354,8 +358,6 @@ namespace MusicNotesEditor.LocalServer
 
             return false;
         }
-
-
 
         private static string GetLocalIPv4()
         {
