@@ -1,3 +1,6 @@
+using Microsoft.Win32;
+using MusicNotesEditor.LocalServer;
+using MusicNotesEditor.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
 using Microsoft.Win32;
 using MusicNotesEditor.ViewModels;
 using Newtonsoft.Json;
@@ -28,11 +32,16 @@ namespace MusicNotesEditor.Views
 
         public string[] SelectedFiles => fileItems.Select(f => f.FilePath).ToArray();
 
+        private CertAndServer? _server;
+
+
         public FileArrangerPage()
         {
             InitializeComponent();
             filesListView.ItemsSource = fileItems;
-            UpdateFileCount();
+
+
+            Unloaded += FileArrangerPage_Unloaded;
         }
 
         private void BtnSelectFiles_Click(object sender, RoutedEventArgs e)
@@ -97,7 +106,6 @@ namespace MusicNotesEditor.Views
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-            UpdateFileCount();
         }
 
         private void PreviewButton_Click(object sender, RoutedEventArgs e)
@@ -499,13 +507,11 @@ namespace MusicNotesEditor.Views
                 fileItems.Remove(item);
             }
             UpdateOrderNumbers();
-            UpdateFileCount();
         }
 
         private void BtnClearAll_Click(object sender, RoutedEventArgs e)
         {
             fileItems.Clear();
-            UpdateFileCount();
         }
 
         private void BtnBack_Click(object sender, RoutedEventArgs e)
@@ -531,11 +537,7 @@ namespace MusicNotesEditor.Views
                 SetProcessingUI(true);
 
                 // Show processing dialog or progress
-                var progress = new Progress<string>(message =>
-                {
-                    // Update your UI with progress messages
-                    lblFileCount.Text = message;
-                });
+                var progress = new Progress<string>();
 
                 // Process files with Python
                 string pythonResult = await ProcessFilesWithPythonAsync(orderedFiles, progress);
@@ -714,10 +716,179 @@ namespace MusicNotesEditor.Views
             }
         }
 
-        private void UpdateFileCount()
+        private async Task GenerateThumbnailAsync(FileItem fileItem)
         {
-            lblFileCount.Text = $"{fileItems.Count} file(s) selected";
-            btnProcess.IsEnabled = fileItems.Count > 0;
+            try
+            {
+                // Set a temporary placeholder immediately
+                fileItem.Thumbnail = CreateDefaultThumbnail("Loading...");
+
+                var thumbnail = await Task.Run(() => CreateThumbnail(fileItem.FilePath));
+                if (thumbnail != null)
+                {
+                    fileItem.Thumbnail = thumbnail;
+                }
+                else
+                {
+                    fileItem.Thumbnail = CreateDefaultThumbnail("Error");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error generating thumbnail for {fileItem.FileName}: {ex.Message}");
+                fileItem.Thumbnail = CreateDefaultThumbnail("Error");
+            }
+        }
+
+        private BitmapImage CreateThumbnail(string filePath)
+        {
+            var extension = Path.GetExtension(filePath).ToLower();
+
+            try
+            {
+                switch (extension)
+                {
+                    case ".png":
+                    case ".jpg":
+                    case ".jpeg":
+                        return CreateImageThumbnail(filePath);
+                    case ".pdf":
+                        return CreatePdfThumbnail(filePath);
+                    default:
+                        return CreateDefaultThumbnail("Unsupported");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating thumbnail for {filePath}: {ex.Message}");
+                return CreateDefaultThumbnail("Error");
+            }
+        }
+
+        private BitmapImage CreateImageThumbnail(string imagePath)
+        {
+            try
+            {
+                var bitmapImage = new BitmapImage();
+                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+                {
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = fileStream;
+                    bitmapImage.DecodePixelWidth = 120; // Reduce size for thumbnail
+                    bitmapImage.DecodePixelHeight = 90; // Maintain aspect ratio
+                    bitmapImage.Rotation = Rotation.Rotate0;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze(); // Important for cross-thread access
+                return bitmapImage;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading image {imagePath}: {ex.Message}");
+                return CreateDefaultThumbnail("Image Error");
+            }
+        }
+
+        private BitmapImage CreatePdfThumbnail(string pdfPath)
+        {
+            // For now, return a PDF placeholder
+            return CreateDefaultThumbnail("PDF");
+        }
+
+        private BitmapImage CreateDefaultThumbnail(string text = "Preview")
+        {
+            try
+            {
+                var drawingVisual = new DrawingVisual();
+                using (var drawingContext = drawingVisual.RenderOpen())
+                {
+                    // Draw background
+                    drawingContext.DrawRectangle(Brushes.LightGray, null, new Rect(0, 0, 60, 45));
+
+                    // Draw border
+                    drawingContext.DrawRectangle(null, new Pen(Brushes.DarkGray, 1), new Rect(0, 0, 60, 45));
+
+                    // Draw text
+                    var formattedText = new FormattedText(
+                        text,
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        FlowDirection.LeftToRight,
+                        new Typeface("Arial"),
+                        8, // Smaller font
+                        Brushes.Black,
+                        1.0);
+
+                    // Center the text
+                    double x = (60 - formattedText.Width) / 2;
+                    double y = (45 - formattedText.Height) / 2;
+                    drawingContext.DrawText(formattedText, new Point(x, y));
+                }
+
+                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
+                renderTarget.Render(drawingVisual);
+
+                var bitmapImage = new BitmapImage();
+                using (var stream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating default thumbnail: {ex.Message}");
+                // Return a simple colored rectangle as fallback
+                return CreateSimpleColorThumbnail(Colors.LightGray);
+            }
+        }
+
+        private BitmapImage CreateSimpleColorThumbnail(Color color)
+        {
+            try
+            {
+                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
+                var drawingVisual = new DrawingVisual();
+
+                using (var drawingContext = drawingVisual.RenderOpen())
+                {
+                    drawingContext.DrawRectangle(new SolidColorBrush(color), null, new Rect(0, 0, 60, 45));
+                }
+
+                renderTarget.Render(drawingVisual);
+                renderTarget.Freeze();
+
+                // Convert RenderTargetBitmap to BitmapImage
+                var bitmapImage = new BitmapImage();
+                using (var stream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+                    encoder.Save(stream);
+                    stream.Position = 0;
+
+                    bitmapImage.BeginInit();
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                }
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+            catch
+            {
+                // Ultimate fallback - return null
+                return null;
+            }
         }
 
         private void BtnImportMusicXml_Click(object sender, RoutedEventArgs e)
@@ -754,6 +925,30 @@ namespace MusicNotesEditor.Views
                 }
             }
         }
+
+        private async void BtnConnectEurydice_Click(object sender, RoutedEventArgs e)
+        {
+            if (_server is null)
+            {
+                _server = new CertAndServer();
+            }
+
+            var json = await _server.StartServerAsync();
+
+            var win = new QrConnectWindow(json, _server);
+            QR_Frame.Navigate(win);
+        }
+
+
+        private async void FileArrangerPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (_server != null)
+            {
+                await _server.StopServerAsync();
+                _server = null;
+            }
+        }
+
     }
 
     public class FileItem : INotifyPropertyChanged
