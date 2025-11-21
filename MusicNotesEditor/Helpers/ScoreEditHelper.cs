@@ -152,8 +152,9 @@ namespace MusicNotesEditor.Helpers
             }
 
             Pitch pitch = PitchHelper.GetPitchFromIndex(staffLineIndex, lastClef);
+            var newTempNote = new TempNote(pitch, currentNote.Value);
             staffElements.Insert(elementOnLeftIndex + 1,
-                new TempNote(pitch, currentNote.Value));
+                 newTempNote);
 
             // Remove stuff over metrum
             Proportion excessProportion = newNoteProportion;
@@ -290,10 +291,14 @@ namespace MusicNotesEditor.Helpers
                 startOverridingNotes = notCorrectRestNeighboursCount > 1;
             }
 
+            ScoreAdjustHelper.FixMeasures(currentMeasure.Staff);
 
             // Replace new note with note
             for (int i = currentMeasureStartIndex; i < staffElements.Count; i++)
-            { 
+            {
+                if (staffElements[i] is Note note)
+                    PitchHelper.ShiftPitch(note, 0);
+
                 var tempNote = staffElements[i] as TempNote;
                 if (tempNote != null)
                 {
@@ -304,7 +309,7 @@ namespace MusicNotesEditor.Helpers
                     else
                     {
                         var newPitch = AccidentalsData.AlterPitch(tempNote.Pitch, accidental);
-                        staffElements[i] = new Note(newPitch, tempNote.Duration);
+                        staffElements[i] = new Note(newPitch, tempNote.Duration, tempNote.StemDirection);
                     }
                 }
             }

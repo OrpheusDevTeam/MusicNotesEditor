@@ -11,6 +11,8 @@ namespace MusicNotesEditor.Helpers
 {
     public class PitchHelper
     {
+        private const double STEM_DIRECTION_CHANGE_LINE = 3;
+
         // Ordered step sequence repeating through the staff
         private static readonly List<Pitch> NaturalPitches = new()
         {
@@ -61,6 +63,12 @@ namespace MusicNotesEditor.Helpers
         {
             var oldPitch = note.Pitch;
             var staffLinePosition = note.GetLineInSpecificClef(ScoreDataExtractor.FindClefOfElement(note));
+
+            VerticalDirection noteDirection = VerticalDirection.Up;
+            if(staffLinePosition +  numberOfShifts * 0.5 >= STEM_DIRECTION_CHANGE_LINE)
+                noteDirection = VerticalDirection.Down;
+
+            note.StemDirection = noteDirection;
 
             int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
 
