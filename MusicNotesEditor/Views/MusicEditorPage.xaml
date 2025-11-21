@@ -9,14 +9,17 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="MusicEditorPage">
 
-    <Grid PreviewKeyDown="HandleKeyDown" x:Name="mainGrid" Background="{StaticResource BrushLight}">
+    <Grid PreviewKeyDown="HandleKeyDown" x:Name="mainGrid">
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/background.png" Stretch="UniformToFill"/>
+        </Grid.Background>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
 
-        <Grid Grid.Row="0" Background="{StaticResource BrushMedium}" Height="50">
+        <Grid Grid.Row="0" Background="{StaticResource BrushLightest}" Height="50">
             <Grid.ColumnDefinitions>  
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -101,7 +104,7 @@
 
             <TextBlock Grid.Column="1"
                Text="{Binding ScoreFileName}"
-               Foreground="White"
+               Foreground="{StaticResource BrushPrimary}"
                FontWeight="Bold"
                VerticalAlignment="Center"
                HorizontalAlignment="Center"
