@@ -178,5 +178,20 @@ namespace MusicNotesEditor.Helpers
         }
 
 
+        public static Clef FindClefOfElement(NoteOrRest note)
+        {
+            var staffElements = note.Measure.Staff.Elements;
+            var noteIndex = staffElements.IndexOf(note);
+            for(int i = noteIndex - 1; i >= 0; i--)
+            {
+                if (staffElements[i] is Clef clef)
+                    return clef;
+            }
+
+            return null;
+        }
+
+
+
     }
 }

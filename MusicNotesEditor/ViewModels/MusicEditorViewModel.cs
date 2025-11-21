@@ -36,7 +36,7 @@ namespace MusicNotesEditor.ViewModels
         public List<MusicalSymbol> SelectedSymbols = new List<MusicalSymbol>();
         public RhythmicDuration? CurrentNote = null;
         public int CurrentAccidental = 0;
-        public bool IsDragging = false;
+        public double? DraggingStartPosition = null;
         public double NoteViewerContentWidth;
         public double NoteViewerContentHeight;
         public string XmlPath = "";
@@ -270,6 +270,57 @@ namespace MusicNotesEditor.ViewModels
             ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
         }
 
+
+        public void DragElements(double mouseYPosition)
+        {
+            if (!IsNoteOrRestSelected || DraggingStartPosition == null)
+                return;
+
+            var shift = (int)Math.Round(( (DraggingStartPosition ?? 0) - mouseYPosition) / DistanceBetweenLines());
+            Console.WriteLine($"Dragging Element: {DraggingStartPosition} Mouse: {mouseYPosition} Shift: {shift}");
+
+            if(shift == 0)
+            {
+                return;
+            }
+
+            foreach (var symbol in SelectedSymbols)
+            {
+                if(symbol is Note note)
+                {
+                    PitchHelper.ShiftPitch(note, shift);
+                }
+            }
+            DraggingStartPosition = mouseYPosition;
+            ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
+        }
+
+
+        public void AddNewMeasure()
+        {
+            if(SelectedSymbols.Count == 0)
+                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth);
+            else if (SelectedSymbols.Count == 1)
+                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, SelectedSymbols[0]);
+
+            SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
+        }
+
+
+        public void DeleteLastMeasure()
+        {
+            if (Data.FirstStaff.Measures.Count < 3 || (!IsNoteOrRestSelected && !IsNothingSelected))
+                return;
+
+            if (SelectedSymbols.Count == 0)
+                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth);
+            else if (SelectedSymbols.Count == 1)
+                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, SelectedSymbols[0]);
+
+            UnSelectElements();
+        }
+
+
         private void NotifySelectionPropertiesChanged()
         {
             OnPropertyChanged(nameof(IsNoteOrRestSelected));
@@ -283,6 +334,13 @@ namespace MusicNotesEditor.ViewModels
         {
             return selectableSymbols.Any(allowedType =>
                 allowedType.IsAssignableFrom(symbol.GetType()));
+        }
+
+
+        private double DistanceBetweenLines()
+        {
+            var staffLines = Data.Systems[0].LinePositions.Values.First();
+            return Math.Abs(staffLines[0] - staffLines[1]);
         }
 
 

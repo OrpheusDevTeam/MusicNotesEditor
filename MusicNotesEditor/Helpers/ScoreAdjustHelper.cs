@@ -16,17 +16,12 @@ namespace MusicNotesEditor.Helpers
         {
             foreach (var staff in score.Staves)
             {
-                // Remove all existing system breaks and replace rests with tempNotes
+                // Remove all existing system breaks
                 for (int i = staff.Elements.Count - 1; i >= 0; i--)
                 {
                     if (staff.Elements[i] is PrintSuggestion ps && ps.IsSystemBreak)
                         staff.Elements.RemoveAt(i);
 
-                    var tempNote = staff.Elements[i] as CorrectRest;
-                    if (tempNote != null)
-                    {
-                        staff.Elements[i] = new TempNote(tempNote.Duration);
-                    }
                 }
 
                 int lastBarlineIndex = -1;
@@ -47,16 +42,6 @@ namespace MusicNotesEditor.Helpers
                         Console.WriteLine($"I: {i} \tcURENT: {previousBarlineIndex} at {staff.Elements[previousBarlineIndex]}");
                         ScoreEditHelper.AddNewLine(staff, previousBarlineIndex + 1);
                         i++;
-                    }
-                }
-
-                // Replace back TempNotes with rests
-                for (int i = 0; i < staff.Elements.Count; i++)
-                {
-                    var tempNote = staff.Elements[i] as TempNote;
-                    if (tempNote != null)
-                    {
-                        staff.Elements[i] = new CorrectRest(tempNote.Duration);
                     }
                 }
 

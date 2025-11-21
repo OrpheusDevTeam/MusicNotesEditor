@@ -3,6 +3,7 @@ using Manufaktura.Music.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -56,6 +57,32 @@ namespace MusicNotesEditor.Helpers
             return NaturalPitches[targetIndex];
         }
 
+        public static void ShiftPitch(Note note, int numberOfShifts)
+        {
+            var oldPitch = note.Pitch;
+            var staffLinePosition = note.GetLineInSpecificClef(ScoreDataExtractor.FindClefOfElement(note));
+
+            int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
+
+            int maxShift = (int)Math.Round((5 + additionalStaffLines - staffLinePosition ) * 2);
+            int minShift = (int)Math.Round((1 - additionalStaffLines - staffLinePosition) * 2);
+
+            if (numberOfShifts > maxShift || numberOfShifts < minShift)
+                return;
+
+            Console.WriteLine($"SHIFTING {note} MAX: {maxShift} MIN: {minShift}");
+
+            int startIndex = NaturalPitches.FindIndex(p =>
+            p.StepName == oldPitch.StepName && p.Octave == oldPitch.Octave);
+            if (startIndex == -1)
+                throw new InvalidOperationException($"Reference pitch {oldPitch} not found in NaturalPitches list.");
+            int targetIndex = startIndex + numberOfShifts;
+
+            // Clamp if we go out of range
+            targetIndex = Math.Max(0, Math.Min(NaturalPitches.Count - 1, targetIndex));
+
+            note.Pitch = NaturalPitches[targetIndex];
+        }
 
 
         private static Step GetStep(Pitch pitch) => pitch.ToStep();

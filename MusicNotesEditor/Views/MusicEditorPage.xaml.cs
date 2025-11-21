@@ -5,6 +5,7 @@ using Manufaktura.Music.Model;
 using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
 using MusicNotesEditor.ViewModels;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using System.Windows;
@@ -71,8 +72,10 @@ namespace MusicNotesEditor.Views
             noteViewer.MouseEnter += Canvas_MouseEnter;
             noteViewer.MouseLeave += Canvas_MouseLeave;
             noteViewer.MouseMove += Canvas_MouseMove;
+            noteViewer.MouseMove += ElementDragging;
 
             noteViewer.MouseLeftButtonDown += Canvas_Click;
+            noteViewer.MouseLeftButtonUp += Canvas_Release;
 
             noteIndicator = new TextBlock
             {
@@ -290,12 +293,20 @@ namespace MusicNotesEditor.Views
             bool shiftPressed = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
 
             viewModel.SelectElement(ownershipDictionary[element], shiftPressed);
+            var pos = e.GetPosition(mainCanvas);
+            viewModel.DraggingStartPosition = pos.Y;
         }
 
 
         private void Canvas_Release(object sender, MouseButtonEventArgs e)
         {
-            throw new NotImplementedException();
+            viewModel.DraggingStartPosition = null;
+        }
+
+        private void ElementDragging(object sender, MouseEventArgs e)
+        {
+            var pos = e.GetPosition(mainCanvas);
+            viewModel.DragElements(pos.Y);
         }
 
         private void HandleKeyDown(object sender, KeyEventArgs e)
@@ -307,6 +318,12 @@ namespace MusicNotesEditor.Views
                     break;
                 case System.Windows.Input.Key.Escape:
                     viewModel.UnSelectElements();
+                    break;
+                case System.Windows.Input.Key.Insert:
+                    if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                        viewModel.DeleteLastMeasure();
+                    else
+                        viewModel.AddNewMeasure();
                     break;
             }
         }
@@ -417,7 +434,7 @@ namespace MusicNotesEditor.Views
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
-         {
+        {
             // Update letter position to follow the mouse
             var pos = e.GetPosition(mainCanvas); 
             Canvas.SetLeft(noteIndicator, pos.X - noteIndicator.ActualWidth / 2);
@@ -484,73 +501,73 @@ namespace MusicNotesEditor.Views
         private void NoteViewer_Debug(object sender, MouseButtonEventArgs e)
         {
 
-            foreach(var ind in staffLineIndicators)
-            {
-                Console.WriteLine($"INDICATORXD: {ind} of text: {ind.Text} and size {ind.ActualWidth} and parent {ind.Parent}");
+            //foreach(var ind in staffLineIndicators)
+            //    {
+            //        Console.WriteLine($"INDICATORXD: {ind} of text: {ind.Text} and size {ind.ActualWidth} and parent {ind.Parent}");
 
-            }
+            //    }
 
-            Console.WriteLine($"INDICATORXD: {noteIndicator} of text: {noteIndicator.Text} and size {noteIndicator.ActualWidth} and parent {noteIndicator.Parent}");
+            //    Console.WriteLine($"INDICATORXD: {noteIndicator} of text: {noteIndicator.Text} and size {noteIndicator.ActualWidth} and parent {noteIndicator.Parent}");
 
 
-            var staves = viewModel.Data.Staves;
-            var systems = viewModel.Data.Systems;
-            var parts = viewModel.Data.Parts;
-            var pages = viewModel.Data.Pages;
+            //    var staves = viewModel.Data.Staves;
+            //    var systems = viewModel.Data.Systems;
+            //    var parts = viewModel.Data.Parts;
+            //    var pages = viewModel.Data.Pages;
 
-            Console.WriteLine($"Staves: {staves.Count}");
-            Console.WriteLine($"Systems: {systems.Count}");
-            Console.WriteLine($"Parts: {parts.Count}");
-            Console.WriteLine($"Pages: {pages.Count}");
+            //    Console.WriteLine($"Staves: {staves.Count}");
+            //    Console.WriteLine($"Systems: {systems.Count}");
+            //    Console.WriteLine($"Parts: {parts.Count}");
+            //    Console.WriteLine($"Pages: {pages.Count}");
 
-            Console.WriteLine("XD");
+            //    Console.WriteLine("XD");
 
-            var barlines = viewModel.Data.FirstStaff.Elements.OfType<Barline>();
-            double lastBarlineYPosition = barlines.Last().ActualRenderedBounds.SE.X;
+            //    var barlines = viewModel.Data.FirstStaff.Elements.OfType<Barline>();
+            //    double lastBarlineYPosition = barlines.Last().ActualRenderedBounds.SE.X;
 
-            Console.WriteLine($"\nLast Barline: {lastBarlineYPosition}");
-            Console.WriteLine($"Bounds: {mainCanvas.ActualWidth}");
+            //    Console.WriteLine($"\nLast Barline: {lastBarlineYPosition}");
+            //    Console.WriteLine($"Bounds: {mainCanvas.ActualWidth}");
 
-            barlines = viewModel.Data.FirstStaff.Elements.OfType<Barline>();
-            lastBarlineYPosition = barlines.Last().ActualRenderedBounds.SE.X;
+            //    barlines = viewModel.Data.FirstStaff.Elements.OfType<Barline>();
+            //    lastBarlineYPosition = barlines.Last().ActualRenderedBounds.SE.X;
 
-            Console.WriteLine($"\nLast Barline2: {lastBarlineYPosition}");
-            Console.WriteLine($"Bounds2: {noteViewer.Width}");
-            Console.WriteLine($"Bounds3: {NoteViewerContentWidth}");
+            //    Console.WriteLine($"\nLast Barline2: {lastBarlineYPosition}");
+            //    Console.WriteLine($"Bounds2: {noteViewer.Width}");
+            //    Console.WriteLine($"Bounds3: {NoteViewerContentWidth}");
 
-            foreach (var staff in viewModel.Data.Staves)
-            {
-                foreach (var measure in staff.Measures)
-                {
-                    Console.WriteLine(measure.ToString());
-                }
-            }
+            //    foreach (var staff in viewModel.Data.Staves)
+            //    {
+            //        foreach (var measure in staff.Measures)
+            //        {
+            //            Console.WriteLine(measure.ToString());
+            //        }
+            //    }
 
-            if (noteViewer.SelectedElement != null)
-            {
-                Console.WriteLine($"Selected element: {noteViewer.SelectedElement} Location: {noteViewer.SelectedElement.RenderedWidth} Type:{noteViewer.SelectedElement.GetType()}");
-            }
-            if (noteViewer.SelectedElement is StaffFragment)
-            {
-                StaffFragment fragment = noteViewer.SelectedElement as StaffFragment;
-                Console.WriteLine($"Fragment: {string.Join(", ", fragment.LinePositions)}");
-            }
-            Console.WriteLine("\nAll elements\n:");
+            //    if (noteViewer.SelectedElement != null)
+            //    {
+            //        Console.WriteLine($"Selected element: {noteViewer.SelectedElement} Location: {noteViewer.SelectedElement.RenderedWidth} Type:{noteViewer.SelectedElement.GetType()}");
+            //    }
+            //    if (noteViewer.SelectedElement is StaffFragment)
+            //    {
+            //        StaffFragment fragment = noteViewer.SelectedElement as StaffFragment;
+            //        Console.WriteLine($"Fragment: {string.Join(", ", fragment.LinePositions)}");
+            //    }
+            //    Console.WriteLine("\nAll elements\n:");
 
             var staves2 = noteViewer.ScoreSource.Staves;
-
             for (int i = 0; i < staves2.Count; i++)
             {
                 var elements = staves2[i].Elements;
+                
                 for (int j = 0; j < elements.Count; j++)
                 {
-                    Console.WriteLine($"\tStave: {i + 1} Measure: {elements[j].Measure} Element: {j + 1}. {elements[j]} Location: {elements[j].ActualRenderedBounds}");
-                    string json = JsonSerializer.Serialize(elements[j].CustomColor, new JsonSerializerOptions { WriteIndented = true });
-                    Console.WriteLine(json?? "No Color");
+                    Console.WriteLine($"\tStave: {i + 1} Measure: {elements[j].Measure} Element: {j + 1}. {elements[j]} " +
+                            $"Location: {elements[j].ActualRenderedBounds}");
+
                 }
             }
 
-            Console.WriteLine("\n\n");
+            //    Console.WriteLine("\n\n");
         }
 
     }
