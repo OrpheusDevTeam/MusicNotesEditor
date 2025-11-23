@@ -57,7 +57,7 @@ namespace MusicNotesEditor.ViewModels
         }
 
         public string ScoreFileName 
-        {
+        {   
             get { return _scoreFileName; }
             set { _scoreFileName = value; OnPropertyChanged(() => ScoreFileName); }
         }
@@ -136,7 +136,28 @@ namespace MusicNotesEditor.ViewModels
         {
             var parser = new MusicXmlParser();
             var score = parser.Parse(XDocument.Load(filepath));
+
+            score.DefaultPageSettings.DefaultStaffDistance = App.Settings.StaffDistance;
+            score.DefaultPageSettings.DefaultSystemDistance = App.Settings.AdditionalStaffLines;
+
+            foreach (var staff in score.Staves)
+            {
+                staff.MeasureAddingRule = Staff.MeasureAddingRuleEnum.AddMeasuresManually;
+                for (int i = staff.Elements.Count - 1; i >= 0; i--)
+                {
+                    if (staff.Elements[i] is Rest rest)
+                    {
+                        staff.Elements[i] = new CorrectRest(rest.Duration);
+                    }
+                    else if (staff.Elements[i] is TimeSignature)
+                    {
+                        staff.Elements.Insert(i + 1, new Barline(BarlineStyle.None));
+                    }
+                }
+                ScoreAdjustHelper.FixMeasures(staff);
+            }
             Data = score;
+
         }
 
         public void PlayScore()

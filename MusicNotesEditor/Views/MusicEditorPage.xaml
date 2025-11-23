@@ -116,7 +116,7 @@
                         >
                 <Button Name="playButton" Content="  Play  " Click="PlayButton_Click" Margin="4" MinHeight="24"/>
                 <Button Content="  Parts  " Margin="4" MinHeight="24"/>
-                <Button Content="  Settings  " Margin="4" MinHeight="24"/>
+                <Button Content="  Menu  " Click="MenuButton_Click" Margin="4" MinHeight="24"/>
             </StackPanel>
         </Grid>
 

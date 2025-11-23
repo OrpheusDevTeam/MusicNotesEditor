@@ -563,6 +563,8 @@ namespace MusicNotesEditor.Views
                 {
                     Console.WriteLine($"\tStave: {i + 1} Measure: {elements[j].Measure} Element: {j + 1}. {elements[j]} " +
                             $"Location: {elements[j].ActualRenderedBounds}");
+                    if (elements[j] is Note note)
+                        Console.WriteLine($"Lyrics: {string.Join(" | ", note.Lyrics)}");
 
                 }
             }
@@ -570,5 +572,9 @@ namespace MusicNotesEditor.Views
             //    Console.WriteLine("\n\n");
         }
 
+        private void MenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new MainMenuPage());
+        }
     }
 }

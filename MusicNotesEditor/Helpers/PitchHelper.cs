@@ -68,7 +68,16 @@ namespace MusicNotesEditor.Helpers
             if(staffLinePosition +  numberOfShifts * 0.5 >= STEM_DIRECTION_CHANGE_LINE)
                 noteDirection = VerticalDirection.Down;
 
-            note.StemDirection = noteDirection;
+            try
+            {
+                note.StemDirection = noteDirection;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"ERROR: {note} M: {note.Measure}");
+                Console.WriteLine(e);
+            }
+
 
             int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
 
