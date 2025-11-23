@@ -16,8 +16,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using Microsoft.Win32;
-using MusicNotesEditor.ViewModels;
 using Newtonsoft.Json;
 
 namespace MusicNotesEditor.Views
@@ -34,12 +32,12 @@ namespace MusicNotesEditor.Views
 
         private CertAndServer? _server;
 
-
         public FileArrangerPage()
         {
             InitializeComponent();
             filesListView.ItemsSource = fileItems;
 
+            ConnectEurydice();
 
             Unloaded += FileArrangerPage_Unloaded;
         }
@@ -926,7 +924,7 @@ namespace MusicNotesEditor.Views
             }
         }
 
-        private async void BtnConnectEurydice_Click(object sender, RoutedEventArgs e)
+        private async void ConnectEurydice()
         {
             if (_server is null)
             {
@@ -940,7 +938,6 @@ namespace MusicNotesEditor.Views
             var win = new QrConnectWindow(json, _server);
             QR_Frame.Navigate(win);
         }
-
 
         private async void FileArrangerPage_Unloaded(object sender, RoutedEventArgs e)
         {
