@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Connections;
-using System.Net;
+﻿using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -95,7 +94,7 @@ namespace MusicNotesEditor.LocalServer
 
         public async Task<string> StartServerAsync(int port = 5003)
         {
-            if(_app is not null)
+            if (_app is not null)
             {
 
                 return JsonSerializer.Serialize(new
@@ -104,7 +103,7 @@ namespace MusicNotesEditor.LocalServer
                     token = Token,
                     fp = FingerprintSha256
                 });
-           
+
             }
 
             EnsureCertificate();
@@ -180,25 +179,23 @@ namespace MusicNotesEditor.LocalServer
                 return Results.Ok(new { id });
             });
 
-            //string? token = req.Headers["X-Token"];
-            //string? deviceId = req.Headers["DeviceID"];
 
-            //if (deviceId is null || token is null)
-            //    return Results.Unauthorized();
-
-            //DeviceRequest? deviceStatus;
-            //Connections.TryGetValue(deviceId, out deviceStatus);
-
-            //if (deviceStatus is null)
-            //    return Results.Forbid();
-
-            //if (token != Token || deviceStatus.Approved != true)
-            //    return Results.Forbid();
             app.MapPost("/upload", async (HttpRequest req) =>
             {
                 string? token = req.Headers["X-Token"];
-                if (token != Token)
-                    return Results.StatusCode(403);
+                string? deviceId = req.Headers["DeviceID"];
+
+                if (deviceId is null || token is null)
+                    return Results.Unauthorized();
+
+                DeviceRequest? deviceStatus;
+                Connections.TryGetValue(deviceId, out deviceStatus);
+
+                if (deviceStatus is null)
+                    return Results.Forbid();
+
+                if (token != Token || deviceStatus.Approved != true)
+                    return Results.Forbid();
 
                 // professional save location
                 var saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OrpheusApp", "Uploads");
@@ -218,8 +215,6 @@ namespace MusicNotesEditor.LocalServer
                 return Results.Ok(new { ok = true, file = name, path = savePath });
             });
 
-            // Return all pending requests
-
 
             app.MapGet("/pending", () =>
             {
@@ -228,48 +223,13 @@ namespace MusicNotesEditor.LocalServer
                 return Results.Json(list);
             });
 
-
-            // Approve device
-            app.MapPost("/approve/{id}", (string id) =>
+            app.MapGet("/denied", () =>
             {
-                if (Connections.TryGetValue(id, out var req))
-                {
-                    req.Approved = true;
-                    return Results.Ok();
-                }
+                var list = GetDenied();
 
-                return Results.NotFound();
+                return Results.Json(list);
             });
 
-            // Deny device
-            app.MapPost("/deny/{id}", (string id) =>
-            {
-                if (Connections.TryGetValue(id, out var req))
-                {
-                    req.Approved = false;
-                    return Results.Ok();
-                }
-
-                return Results.NotFound();
-            });
-
-            // Download uploaded image by file name
-            app.MapGet("/image/{file}", (string file) =>
-            {
-                var saveDir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "OrpheusApp",
-                    "Uploads"
-                );
-
-                var path = Path.Combine(saveDir, file);
-
-                if (!File.Exists(path))
-                    return Results.NotFound();
-
-                var bytes = File.ReadAllBytes(path);
-                return Results.File(bytes, "image/jpeg");
-            });
 
             app.MapPost("/disconnect", async (HttpRequest req) =>
             {
@@ -305,7 +265,8 @@ namespace MusicNotesEditor.LocalServer
             {
                 _app = app;
                 await app.StartAsync();
-            }catch(IOException _)
+            }
+            catch (IOException _)
             {
                 //TODO: if the port is taken, for example by FileMaker...
             }
@@ -326,6 +287,21 @@ namespace MusicNotesEditor.LocalServer
         {
             var list = Connections
                 .Where(p => p.Value.Approved == null)
+                .Select(p => new PendingRequest
+                {
+                    Key = p.Key,
+                    Time = p.Value.Time,
+                    DeviceName = p.Value.DeviceName
+                })
+                .ToList();
+
+            return list;
+        }
+
+        public List<PendingRequest> GetDenied()
+        {
+            var list = Connections
+                .Where(p => p.Value.Approved == false)
                 .Select(p => new PendingRequest
                 {
                     Key = p.Key,
