@@ -818,7 +818,7 @@ namespace MusicNotesEditor.Views
 
             var json = await _server.StartServerAsync();
 
-            var win = new QrConnectWindow(json, _server);
+            var win = new QrConnectPage(json, _server);
             QR_Frame.Navigate(win);
         }
 
