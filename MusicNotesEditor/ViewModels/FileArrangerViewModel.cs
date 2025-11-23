@@ -43,11 +43,11 @@ namespace MusicNotesEditor.ViewModels
                 XmlSchemaSet schemas = new XmlSchemaSet();
 
                 // Add the imported schemas that MusicXML depends on
-                schemas.Add("http://www.w3.org/XML/1998/namespace", "xml.xsd");
-                schemas.Add("http://www.w3.org/1999/xlink", "xlink.xsd");
+                schemas.Add("http://www.w3.org/XML/1998/namespace", "Assets\\xml.xsd");
+                schemas.Add("http://www.w3.org/1999/xlink", "Assets\\xlink.xsd");
 
                 // Add the main MusicXML schema (no namespace)
-                schemas.Add(null, "musicxml.xsd"); // null = no namespace
+                schemas.Add(null, "Assets\\musicxml.xsd"); // null = no namespace
 
                 settings.Schemas = schemas;
 

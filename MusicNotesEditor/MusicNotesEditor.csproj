@@ -25,9 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="appsetti                                             ngs.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -42,9 +39,28 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Remove="Assets\musicxml.xsd" />
+    <Resource Remove="Assets\xlink.xsd" />
+    <Resource Remove="Assets\xml.xsd" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Update="Assets\logo_orpheus.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Resource>
+    <None Update="Assets\musicxml.xsd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\xlink.xsd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\xml.xsd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MusicNotesEditor.LocalServer\MusicNotesEditor.LocalServer.csproj" />
   </ItemGroup>
 
 </Project>
