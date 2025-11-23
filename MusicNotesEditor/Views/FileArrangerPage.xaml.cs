@@ -714,87 +714,8 @@ namespace MusicNotesEditor.Views
             {
                 fileItems[i].Order = i + 1;
             }
-        }
-
-        private async Task GenerateThumbnailAsync(FileItem fileItem)
-        {
-            try
-            {
-                // Set a temporary placeholder immediately
-                fileItem.Thumbnail = CreateDefaultThumbnail("Loading...");
-
-                var thumbnail = await Task.Run(() => CreateThumbnail(fileItem.FilePath));
-                if (thumbnail != null)
-                {
-                    fileItem.Thumbnail = thumbnail;
-                }
-                else
-                {
-                    fileItem.Thumbnail = CreateDefaultThumbnail("Error");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error generating thumbnail for {fileItem.FileName}: {ex.Message}");
-                fileItem.Thumbnail = CreateDefaultThumbnail("Error");
-            }
-        }
-
-        private BitmapImage CreateThumbnail(string filePath)
-        {
-            var extension = Path.GetExtension(filePath).ToLower();
-
-            try
-            {
-                switch (extension)
-                {
-                    case ".png":
-                    case ".jpg":
-                    case ".jpeg":
-                        return CreateImageThumbnail(filePath);
-                    case ".pdf":
-                        return CreatePdfThumbnail(filePath);
-                    default:
-                        return CreateDefaultThumbnail("Unsupported");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error creating thumbnail for {filePath}: {ex.Message}");
-                return CreateDefaultThumbnail("Error");
-            }
-        }
-
-        private BitmapImage CreateImageThumbnail(string imagePath)
-        {
-            try
-            {
-                var bitmapImage = new BitmapImage();
-                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
-                {
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = fileStream;
-                    bitmapImage.DecodePixelWidth = 120; // Reduce size for thumbnail
-                    bitmapImage.DecodePixelHeight = 90; // Maintain aspect ratio
-                    bitmapImage.Rotation = Rotation.Rotate0;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze(); // Important for cross-thread access
-                return bitmapImage;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error loading image {imagePath}: {ex.Message}");
-                return CreateDefaultThumbnail("Image Error");
-            }
-        }
-
-        private BitmapImage CreatePdfThumbnail(string pdfPath)
-        {
-            // For now, return a PDF placeholder
-            return CreateDefaultThumbnail("PDF");
-        }
+        } 
+        
 
         private BitmapImage CreateDefaultThumbnail(string text = "Preview")
         {
@@ -852,44 +773,6 @@ namespace MusicNotesEditor.Views
             }
         }
 
-        private BitmapImage CreateSimpleColorThumbnail(Color color)
-        {
-            try
-            {
-                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
-                var drawingVisual = new DrawingVisual();
-
-                using (var drawingContext = drawingVisual.RenderOpen())
-                {
-                    drawingContext.DrawRectangle(new SolidColorBrush(color), null, new Rect(0, 0, 60, 45));
-                }
-
-                renderTarget.Render(drawingVisual);
-                renderTarget.Freeze();
-
-                // Convert RenderTargetBitmap to BitmapImage
-                var bitmapImage = new BitmapImage();
-                using (var stream = new MemoryStream())
-                {
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
-                    encoder.Save(stream);
-                    stream.Position = 0;
-
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = stream;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze();
-                return bitmapImage;
-            }
-            catch
-            {
-                // Ultimate fallback - return null
-                return null;
-            }
-        }
 
         private void BtnImportMusicXml_Click(object sender, RoutedEventArgs e)
         {

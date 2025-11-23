@@ -75,7 +75,7 @@ namespace MusicNotesEditor.Helpers
             int maxShift = (int)Math.Round((5 + additionalStaffLines - staffLinePosition ) * 2);
             int minShift = (int)Math.Round((1 - additionalStaffLines - staffLinePosition) * 2);
 
-            if (numberOfShifts > maxShift || numberOfShifts < minShift)
+            if (numberOfShifts > maxShift || numberOfShifts < minShift || numberOfShifts == 0)
                 return;
 
             Console.WriteLine($"SHIFTING {note} MAX: {maxShift} MIN: {minShift}");
