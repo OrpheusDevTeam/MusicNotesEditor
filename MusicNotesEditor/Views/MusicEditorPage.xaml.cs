@@ -317,9 +317,27 @@ namespace MusicNotesEditor.Views
         {
             if (viewModel.CurrentLyrics != null)
             {
+                if (e.Key == System.Windows.Input.Key.Delete)
+                {
+                    viewModel.RemoveCharacterFromLyrics(true);
+                    return;
+                }
+
                 if (e.Key == System.Windows.Input.Key.Back)
                 {
                     viewModel.RemoveCharacterFromLyrics();
+                    return;
+                }
+
+                if (e.Key == System.Windows.Input.Key.Left)
+                {
+                    viewModel.JumpToNextSyllable(isNewWord: true, jumpToPrevious: true, changeSyllablesType: false);
+                    return;
+                }
+
+                if (e.Key == System.Windows.Input.Key.Right)
+                {
+                    viewModel.JumpToNextSyllable(isNewWord: true, jumpToPrevious: false, changeSyllablesType: false);
                     return;
                 }
 

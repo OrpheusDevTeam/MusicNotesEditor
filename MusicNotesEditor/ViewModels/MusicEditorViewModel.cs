@@ -239,6 +239,12 @@ namespace MusicNotesEditor.ViewModels
         {
             if(CurrentLyrics != null)
             {
+                Console.WriteLine($"UNSELECTING LYRICS---------------: {CurrentLyrics.Text}");
+                if (CurrentLyrics.Text == LYRICS_PLACEHOLDER)
+                {
+                    CurrentLyrics.Note.Lyrics.Clear();
+                    ScoreEditHelper.Rerender(Data);
+                }
                 SelectionHelper.ColorElement(noteViewer, CurrentLyrics);
             }
             CurrentLyrics = null;
@@ -440,13 +446,13 @@ namespace MusicNotesEditor.ViewModels
         }
 
 
-        public void RemoveCharacterFromLyrics()
+        public void RemoveCharacterFromLyrics(bool removeAll = false)
         {
-            if (CurrentLyrics == null || CurrentLyrics.Text.Length == 0)
+            if (CurrentLyrics == null || CurrentLyrics.Text.Length == 0 || CurrentLyrics.Text == LYRICS_PLACEHOLDER)
                 return;
 
             var newText = LYRICS_PLACEHOLDER;
-            if (CurrentLyrics.Text.Length > 1)
+            if (CurrentLyrics.Text.Length > 1 && !removeAll)
                 newText = CurrentLyrics.Text[..^1];
             var newLyrics = new Lyrics(CurrentLyrics.Syllables[0].Type, newText);
             newLyrics.DefaultYPosition = CalculateLyricsYPosition(CurrentLyrics.Note);
@@ -457,15 +463,15 @@ namespace MusicNotesEditor.ViewModels
             SelectionHelper.ColorSelectedElement(noteViewer, CurrentLyrics);
         }
 
-
-        public void JumpToNextSyllable(bool isNewWord = false)
+        public void JumpToNextSyllable(bool isNewWord = false, bool jumpToPrevious = false, bool changeSyllablesType = true)
         {
-            if (CurrentLyrics == null || CurrentLyrics.Note == CurrentLyrics.Note.Measure.Staff.Elements.OfType<Note>().Last())
+            if (CurrentLyrics == null || (CurrentLyrics.Note == CurrentLyrics.Note.Measure.Staff.Elements.OfType<Note>().Last() && !jumpToPrevious))
                 return;
 
             var syllableType = CurrentLyrics.Syllables[0].Type;
-
-            if (isNewWord)
+            
+            if(!changeSyllablesType) {}
+            else if (isNewWord)
             {
                 if(syllableType == SyllableType.Begin)
                     CurrentLyrics.Syllables[0].Type = SyllableType.Single;
@@ -483,7 +489,12 @@ namespace MusicNotesEditor.ViewModels
 
             var currentType = CurrentLyrics.Syllables[0].Type;
             var notes = CurrentLyrics.Note.Measure.Staff.Elements.OfType<Note>();
-            var nextNote = notes
+    
+            var nextNote = jumpToPrevious
+            ? notes
+                .TakeWhile(n => n != CurrentLyrics.Note)
+                .LastOrDefault()
+            : notes
                 .SkipWhile(n => n != CurrentLyrics.Note)
                 .Skip(1)
                 .FirstOrDefault();
@@ -502,7 +513,7 @@ namespace MusicNotesEditor.ViewModels
 
             var newType = SyllableType.Single;
 
-            if(currentType == SyllableType.Begin || currentType == SyllableType.Middle)
+            if((currentType == SyllableType.Begin || currentType == SyllableType.Middle) && !jumpToPrevious)
                 newType = SyllableType.Middle;
 
             StartTypingLyrics(newType);
