@@ -26,5 +26,8 @@ namespace MusicNotesEditor.Models.Config
 
         [Required] 
         public int? MinimalInitialMeasurePerStaff { get; set; }
+
+        [Required]
+        public int? MaxCharactersInSyllable { get; set; }
     }
 }

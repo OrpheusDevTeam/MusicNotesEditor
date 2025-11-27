@@ -26,6 +26,7 @@ namespace MusicNotesEditor.ViewModels
     class MusicEditorViewModel : ViewModel
     {
         private const int MAX_NUMBER_OF_STAVES = 5;
+        private const string LYRICS_PLACEHOLDER = " |";
         
         private readonly List<Type> selectableSymbols = new List<Type>() { 
             typeof(NoteOrRest),
@@ -40,6 +41,7 @@ namespace MusicNotesEditor.ViewModels
         public double NoteViewerContentWidth;
         public double NoteViewerContentHeight;
         public string XmlPath = "";
+        public Lyrics? CurrentLyrics = null;
 
         public bool IsNoteOrRestSelected => SelectedSymbols.Any(symbol => symbol is NoteOrRest);
         public bool IsClefSelected => SelectedSymbols.Any(symbol => symbol is Clef);
@@ -235,6 +237,11 @@ namespace MusicNotesEditor.ViewModels
 
         public void UnSelectElements(Func<MusicalSymbol, bool>? filter = null)
         {
+            if(CurrentLyrics != null)
+            {
+                SelectionHelper.ColorElement(noteViewer, CurrentLyrics);
+            }
+            CurrentLyrics = null;
             if (filter == null)
             {
                 Console.WriteLine($"UNSELECTING ALL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -252,7 +259,7 @@ namespace MusicNotesEditor.ViewModels
                 {
                     SelectedSymbols.Remove(element);
                 }
-
+                 
             }
             NotifySelectionPropertiesChanged();
         }
@@ -340,6 +347,167 @@ namespace MusicNotesEditor.ViewModels
 
             UnSelectElements();
         }
+
+
+        public void StartTypingLyrics(SyllableType syllableType = SyllableType.Single)
+        {
+            if(SelectedSymbols.Count != 1)
+                return;
+
+            if(CurrentLyrics != null)
+            {
+                if(CurrentLyrics.Text == LYRICS_PLACEHOLDER || string.IsNullOrWhiteSpace(CurrentLyrics.Text))
+                    CurrentLyrics.Note.Lyrics.Clear();
+                UnSelectElements();
+                ScoreEditHelper.Rerender(Data);
+                CurrentLyrics = null;
+            }
+
+            if (SelectedSymbols[0] is Note note)
+            {
+                if(note.Lyrics.Count > 0)
+                {
+                    CurrentLyrics = note.Lyrics[0];
+                    SelectionHelper.ColorSelectedElement(noteViewer, CurrentLyrics);
+                }
+
+                else
+                {
+                    var newLyrics = new Lyrics(syllableType, LYRICS_PLACEHOLDER);
+
+                    note.Lyrics.Add(newLyrics);
+                    note.Lyrics[0].DefaultYPosition = CalculateLyricsYPosition(note);
+                    ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
+
+                    CurrentLyrics = newLyrics;
+                    SelectionHelper.ColorSelectedElement(noteViewer, newLyrics);
+                }
+            }
+        }
+
+
+        public void StopTypingLyrics()
+        {
+            if(CurrentLyrics == null) return;
+
+            var syllableType = CurrentLyrics.Syllables[0].Type;
+
+
+            if (syllableType == SyllableType.Begin)
+                CurrentLyrics.Syllables[0].Type = SyllableType.Single;
+            else if (syllableType != SyllableType.Single)
+                CurrentLyrics.Syllables[0].Type = SyllableType.End;
+
+            if (CurrentLyrics != null)
+            {
+                SelectionHelper.ColorElement(noteViewer, CurrentLyrics);
+                if (CurrentLyrics.Text == LYRICS_PLACEHOLDER || string.IsNullOrWhiteSpace(CurrentLyrics.Text))
+                {
+                    CurrentLyrics.Note.Lyrics.Clear();
+                }
+                CurrentLyrics = null;
+            }
+
+            UnSelectElements();
+            ScoreEditHelper.Rerender(Data);
+        }
+
+
+        public void AddCharacterToLyrics(string newChar)
+        {
+            if(CurrentLyrics == null || CurrentLyrics.Text.Length == App.Settings.MaxCharactersInSyllable) 
+                return;
+
+            var previousText = CurrentLyrics.Text;
+            if (previousText == LYRICS_PLACEHOLDER)
+                previousText = "";
+            var newLyrics = new Lyrics(CurrentLyrics.Syllables[0].Type, $"{previousText}{newChar}");
+            Console.WriteLine($"ADDING NEW LYRICS: {newLyrics} to {CurrentLyrics} of note: {CurrentLyrics?.Note ?? null}");
+            newLyrics.DefaultYPosition = CalculateLyricsYPosition(CurrentLyrics.Note);
+            CurrentLyrics.Note.Lyrics.Clear();
+            CurrentLyrics.Note.Lyrics.Add(newLyrics);
+            CurrentLyrics = newLyrics;
+            ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
+            SelectionHelper.ColorSelectedElement(noteViewer, CurrentLyrics);
+        }
+
+
+        public double CalculateLyricsYPosition(Note note)
+        {
+            var yPos = (note.ActualRenderedBounds.NW.Y + note.ActualRenderedBounds.SW.Y) / 2;
+            int _ = ScoreDataExtractor.GetStaffLineIndex(Data, yPos, out var linePositions);
+            return 5 + ((linePositions.Min() - linePositions.Max()) / 5) * (5 + (App.Settings.AdditionalStaffLines.Value * 2)); 
+        }
+
+
+        public void RemoveCharacterFromLyrics()
+        {
+            if (CurrentLyrics == null || CurrentLyrics.Text.Length == 0)
+                return;
+
+            var newText = LYRICS_PLACEHOLDER;
+            if (CurrentLyrics.Text.Length > 1)
+                newText = CurrentLyrics.Text[..^1];
+            var newLyrics = new Lyrics(CurrentLyrics.Syllables[0].Type, newText);
+            newLyrics.DefaultYPosition = CalculateLyricsYPosition(CurrentLyrics.Note);
+            CurrentLyrics.Note.Lyrics.Clear();
+            CurrentLyrics.Note.Lyrics.Add(newLyrics);
+            CurrentLyrics = newLyrics;
+            ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
+            SelectionHelper.ColorSelectedElement(noteViewer, CurrentLyrics);
+        }
+
+
+        public void JumpToNextSyllable(bool isNewWord = false)
+        {
+            if (CurrentLyrics == null || CurrentLyrics.Note == CurrentLyrics.Note.Measure.Staff.Elements.OfType<Note>().Last())
+                return;
+
+            var syllableType = CurrentLyrics.Syllables[0].Type;
+
+            if (isNewWord)
+            {
+                if(syllableType == SyllableType.Begin)
+                    CurrentLyrics.Syllables[0].Type = SyllableType.Single;
+                else if(syllableType != SyllableType.Single)
+                    CurrentLyrics.Syllables[0].Type = SyllableType.End;
+            }
+            else
+            {
+                if (syllableType == SyllableType.End)
+                    CurrentLyrics.Syllables[0].Type = SyllableType.Middle;
+                else if (syllableType == SyllableType.Single)
+                    CurrentLyrics.Syllables[0].Type = SyllableType.Begin;
+            }
+            CurrentLyrics.Note.Measure.Staff.Elements.OfType<Note>();
+
+            var currentType = CurrentLyrics.Syllables[0].Type;
+            var notes = CurrentLyrics.Note.Measure.Staff.Elements.OfType<Note>();
+            var nextNote = notes
+                .SkipWhile(n => n != CurrentLyrics.Note)
+                .Skip(1)
+                .FirstOrDefault();
+
+            if (nextNote == null)
+                return;
+            
+            if (CurrentLyrics.Text == LYRICS_PLACEHOLDER || string.IsNullOrWhiteSpace(CurrentLyrics.Text))
+            {
+                CurrentLyrics.Note.Lyrics.Clear();
+            }
+
+            UnSelectElements();
+            ScoreEditHelper.Rerender(Data);
+            SelectElement(nextNote, false);
+
+            var newType = SyllableType.Single;
+
+            if(currentType == SyllableType.Begin || currentType == SyllableType.Middle)
+                newType = SyllableType.Middle;
+
+            StartTypingLyrics(newType);
+        }
+
 
 
         private void NotifySelectionPropertiesChanged()

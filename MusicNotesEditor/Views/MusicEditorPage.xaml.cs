@@ -2,6 +2,7 @@
 using Manufaktura.Controls.WPF;
 using Manufaktura.Controls.WPF.Renderers;
 using Manufaktura.Music.Model;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
 using MusicNotesEditor.ViewModels;
@@ -32,6 +33,9 @@ namespace MusicNotesEditor.Views
         List<TextBlock> staffLineIndicators;
         public MusicEditorPage(string filepath = "")
         {
+            NavigationCommands.BrowseBack.InputGestures.Clear();
+            NavigationCommands.BrowseForward.InputGestures.Clear();
+
             InitializeComponent();
             GenerateNoteButtons();
 
@@ -311,6 +315,48 @@ namespace MusicNotesEditor.Views
 
         private void HandleKeyDown(object sender, KeyEventArgs e)
         {
+            if (viewModel.CurrentLyrics != null)
+            {
+                if (e.Key == System.Windows.Input.Key.Back)
+                {
+                    viewModel.RemoveCharacterFromLyrics();
+                    return;
+                }
+
+                if (e.Key == System.Windows.Input.Key.Space)
+                {
+                    viewModel.JumpToNextSyllable(isNewWord: true);
+                    return;
+                }
+
+                if (e.Key == System.Windows.Input.Key.OemMinus)
+                {
+                    // hyphen means same word, continue
+                    viewModel.JumpToNextSyllable(isNewWord: false);
+                    return;
+                }
+
+                if (e.Key == System.Windows.Input.Key.Escape)
+                {
+                    viewModel.StopTypingLyrics();
+                    return;
+                }
+
+                // Normal character input
+                string? typed = null;
+                char c = (char)KeyInterop.VirtualKeyFromKey(e.Key);
+                if (char.IsLetterOrDigit(c))
+                    typed = c.ToString().ToLower();
+
+                if (!string.IsNullOrEmpty(typed))
+                {
+                    viewModel.AddCharacterToLyrics(typed);
+                    return;
+                }
+
+                return;
+            }
+
             switch(e.Key)
             {
                 case System.Windows.Input.Key.Delete:
@@ -318,12 +364,17 @@ namespace MusicNotesEditor.Views
                     break;
                 case System.Windows.Input.Key.Escape:
                     viewModel.UnSelectElements();
+
                     break;
                 case System.Windows.Input.Key.Insert:
                     if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
                         viewModel.DeleteLastMeasure();
                     else
                         viewModel.AddNewMeasure();
+                    break;
+                case System.Windows.Input.Key.L:
+                    if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+                        viewModel.StartTypingLyrics();
                     break;
             }
         }
