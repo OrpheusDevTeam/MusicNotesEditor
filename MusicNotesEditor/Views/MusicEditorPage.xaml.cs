@@ -1,12 +1,15 @@
 ﻿using Manufaktura.Controls.Model;
+using Manufaktura.Controls.Parser;
 using Manufaktura.Controls.WPF;
 using Manufaktura.Controls.WPF.Renderers;
 using Manufaktura.Music.Model;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.Win32;
 using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
 using MusicNotesEditor.ViewModels;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Text.Json;
 using System.Windows;
@@ -16,6 +19,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
+using System.Xml.Linq;
 
 namespace MusicNotesEditor.Views
 {
@@ -273,8 +277,134 @@ namespace MusicNotesEditor.Views
 
         public void PlayButton_Click(object sender, RoutedEventArgs e)
         {
+            //App.PlaybackService.Play("Assets\\testmusic.wav");
             viewModel.PlayScore();
         }
+
+
+        public void SaveNewMusicXML(object sender, RoutedEventArgs e)
+        {
+            var parser = new MusicXmlParser();
+
+            string filter = "MusicXML Files (*.musicxml)|*.musicxml";
+
+            SaveFileDialog dialog = new SaveFileDialog
+            {
+                Filter = filter
+            };
+
+            string filePath = dialog.ShowDialog() == true ? dialog.FileName : null;
+            
+            foreach(var staff in viewModel.Data.Staves)
+            {
+                staff.Elements.RemoveAt(3);
+            }
+
+            
+            ScoreAdjustHelper.FixMeasures(viewModel.Data.FirstStaff);
+            
+            try
+            {
+                XDocument musicXmlFile = parser.ParseBack(viewModel.Data);
+
+                if (musicXmlFile == null || filePath == null)
+                {
+                    for (int i = 0; i < viewModel.Data.Staves.Count; i++)
+                    {
+                        viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
+                        ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
+                    }
+                    return;
+                }
+
+                viewModel.XmlPath = filePath;
+
+                viewModel.ScoreFileName = Path.GetFileName(viewModel.XmlPath);
+
+                musicXmlFile.Save(filePath);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving XML: {ex.Message}");
+            }
+
+            for (int i = 0; i < viewModel.Data.Staves.Count; i++)
+            {
+                viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
+                ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
+            }
+
+        }
+
+
+        public void SaveMusicXML(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(viewModel.XmlPath))
+            {
+                SaveNewMusicXML(sender, e);
+                return;
+            }
+
+            var parser = new MusicXmlParser();
+
+            foreach (var staff in viewModel.Data.Staves)
+            {
+                staff.Elements.RemoveAt(3);
+            }
+
+
+            ScoreAdjustHelper.FixMeasures(viewModel.Data.FirstStaff);
+
+            try
+            {
+                XDocument musicXmlFile = parser.ParseBack(viewModel.Data);
+
+                if (musicXmlFile == null)
+                {
+                    for (int i = 0; i < viewModel.Data.Staves.Count; i++)
+                    {
+                        viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
+                        ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
+                    }
+                    return;
+                }
+
+
+                musicXmlFile.Save(viewModel.XmlPath);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving XML: {ex.Message}");
+            }
+
+            for (int i = 0; i < viewModel.Data.Staves.Count; i++)
+            {
+                viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
+                ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
+            }
+
+        }
+
+
+        public void OpenMusicXML(object sender, RoutedEventArgs e)
+        {
+            App.OpenFileService.SelectMusicXMLFile(NavigationService.GetNavigationService(this));
+        }
+
+
+        public void ExportToSvg(object sender, RoutedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        public void ExportToPdf(object sender, RoutedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public void Canvas_Click(object sender, MouseButtonEventArgs e)
         {
@@ -641,7 +771,7 @@ namespace MusicNotesEditor.Views
             //    Console.WriteLine("\n\n");
         }
 
-        private void MenuButton_Click(object sender, RoutedEventArgs e)
+        private void BackToMenu(object sender, RoutedEventArgs e)
         {
             NavigationService.Navigate(new MainMenuPage());
         }

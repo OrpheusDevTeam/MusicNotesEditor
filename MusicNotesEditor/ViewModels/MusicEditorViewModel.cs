@@ -50,7 +50,7 @@ namespace MusicNotesEditor.ViewModels
         public bool IsRest => CurrentAccidental == 2;
 
         private string _scoreFileName;
-        private ScorePlayer player;
+        private ScorePlayer? player = null;
         private Score data;
         public Score Data
         {
@@ -164,9 +164,22 @@ namespace MusicNotesEditor.ViewModels
 
         public void PlayScore()
         {
-            player = new MidiTaskScorePlayer(Data);
-            player.Tempo = Tempo.Allegro;
-            player.Play();
+
+            //player.Tempo = Tempo.Andante;
+            if(player != null)
+                Console.WriteLine($"STATING IN MUSIC BEFORE {player.State}");
+            if (player == null)
+            {
+                player = new MidiTaskScorePlayer(Data);
+                Console.WriteLine(string.Join(", ", MidiTaskScorePlayer.AvailableDevices));
+                player.PlayCueNotes = true;
+                player.Play();
+            }
+            Console.WriteLine($"STATING IN MUSIC {player.State}");
+            Console.WriteLine($"TEMPOING IN MUSIC {player.Tempo.BeatsPerMinute}");
+            Console.WriteLine($"STATING IN MUSIC {player.PlayCueNotes}");
+            Console.WriteLine($"CURRENT SYMBOL IN MUSIC {player.CurrentElement}");
+            Console.WriteLine($"CURRENT POSITION IN MUSIC {player.CurrentPosition.PositionX}");
         }
 
 

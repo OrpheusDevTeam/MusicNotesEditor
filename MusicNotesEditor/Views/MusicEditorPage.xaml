@@ -15,11 +15,33 @@
         </Grid.Background>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
 
-        <Grid Grid.Row="0" Background="{StaticResource BrushLightest}" Height="50">
+        <Menu Grid.Row="0" Background="{StaticResource BrushLightest}">
+            <Menu.InputBindings>
+                <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding OpenCommand}"/>
+                <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveCommand}"/>
+                <KeyBinding Key="S" Modifiers="Ctrl+Shift" Command="{Binding SaveAsCommand}"/>
+            </Menu.InputBindings>
+            <MenuItem Header="File">
+                <MenuItem Header="Open" Click="OpenMusicXML"/>
+                <MenuItem Header="Save" Click="SaveMusicXML"/>
+                <MenuItem Header="Save As" Click="SaveNewMusicXML"/>
+                <Separator/>
+                <MenuItem Header="Export">
+                    <MenuItem Header="Export to SVG" Click="ExportToSvg"/>
+                    <MenuItem Header="Export to PDF" Click="ExportToPdf"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Exit" Click="BackToMenu" />
+            </MenuItem>
+        </Menu>
+
+
+        <Grid Grid.Row="1" Background="{StaticResource BrushLightest}" Height="50">
             <Grid.ColumnDefinitions>  
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -116,12 +138,11 @@
                         >
                 <Button Name="playButton" Content="  Play  " Click="PlayButton_Click" Margin="4" MinHeight="24"/>
                 <Button Content="  Parts  " Margin="4" MinHeight="24"/>
-                <Button Content="  Menu  " Click="MenuButton_Click" Margin="4" MinHeight="24"/>
             </StackPanel>
         </Grid>
 
 
-        <ScrollViewer Grid.Row="1"
+        <ScrollViewer Grid.Row="2"
                   VerticalScrollBarVisibility="Auto"
                   Margin="0,10,0,0">
 

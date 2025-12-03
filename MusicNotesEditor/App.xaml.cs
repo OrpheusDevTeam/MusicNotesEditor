@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MusicNotesEditor.Models.Config;
+using MusicNotesEditor.Services.MusicPlayback;
+using MusicNotesEditor.Services.OpenFile;
 using System.ComponentModel.DataAnnotations;
 using System.Configuration;
 using System.Data;
@@ -13,10 +15,15 @@ namespace MusicNotesEditor
     public partial class App : Application
     {
         public static AppSettings Settings { get; private set; }
+        public static IMusicPlaybackService PlaybackService { get; private set; }
+        public static IOpenFileService OpenFileService { get; private set; }
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            PlaybackService = new MusicPlaybackService();
+            OpenFileService = new OpenFileService();
 
             ConfigureApp();
         }

@@ -788,8 +788,8 @@ namespace MusicNotesEditor.Views
                 try
                 {
                     // Validate the MusicXML file if needed
-                    viewModel.TestData(musicXmlFilePath);
-                    if (viewModel.ValidateMusicXmlWithXsd(musicXmlFilePath))
+                    App.OpenFileService.TestData(musicXmlFilePath);
+                    if (App.OpenFileService.ValidateMusicXmlWithXsd(musicXmlFilePath))
                     {
                         NavigationService.Navigate(new MusicEditorPage(musicXmlFilePath));
                     }
