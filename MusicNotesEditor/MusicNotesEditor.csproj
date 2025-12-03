@@ -31,6 +31,12 @@
   </ItemGroup>
 
   <ItemGroup>
+	<Content Include="Assets\script\node_modules\**">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+  </ItemGroup>
+	
+  <ItemGroup>
     <None Remove="Views\logo_orpheus.svg" />
   </ItemGroup>
 
@@ -48,6 +54,18 @@
     <Resource Update="Assets\logo_orpheus.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Resource>
+    <None Update="Assets\script\node.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\script\package-lock.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\script\package.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\script\script.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Assets\musicxml.xsd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

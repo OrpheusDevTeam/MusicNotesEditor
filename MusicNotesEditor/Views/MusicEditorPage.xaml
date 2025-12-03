@@ -32,7 +32,6 @@
                 <MenuItem Header="Save As" Click="SaveNewMusicXML"/>
                 <Separator/>
                 <MenuItem Header="Export">
-                    <MenuItem Header="Export to SVG" Click="ExportToSvg"/>
                     <MenuItem Header="Export to PDF" Click="ExportToPdf"/>
                 </MenuItem>
                 <Separator/>
@@ -77,6 +76,7 @@
                                         Background="{TemplateBinding Background}"
                                         BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4"
                                         >
                                             <ContentPresenter HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"

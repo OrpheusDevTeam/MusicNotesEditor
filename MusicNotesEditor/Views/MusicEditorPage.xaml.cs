@@ -7,10 +7,13 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Win32;
 using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
+using MusicNotesEditor.Models.Framework;
+using MusicNotesEditor.Services.SaveFile;
 using MusicNotesEditor.ViewModels;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,6 +31,7 @@ namespace MusicNotesEditor.Views
     /// </summary>
     public partial class MusicEditorPage : Page
     {
+        private const string SOFTWARE_NAME = "Orpheus v1.0";
 
         private double noteViewerWidthPercentage = 0.6;
         private readonly MusicEditorViewModel viewModel = new MusicEditorViewModel();
@@ -284,59 +288,20 @@ namespace MusicNotesEditor.Views
 
         public void SaveNewMusicXML(object sender, RoutedEventArgs e)
         {
-            var parser = new MusicXmlParser();
-
             string filter = "MusicXML Files (*.musicxml)|*.musicxml";
-
-            SaveFileDialog dialog = new SaveFileDialog
-            {
-                Filter = filter
-            };
-
+            SaveFileDialog dialog = new SaveFileDialog { Filter = filter };
             string filePath = dialog.ShowDialog() == true ? dialog.FileName : null;
-            
-            foreach(var staff in viewModel.Data.Staves)
+
+            if (filePath == null) return;
+
+            bool success = App.FileSaveService.SaveMusicXMLInternal(viewModel.Data, filePath);
+
+            if (success && filePath != viewModel.XmlPath)
             {
-                staff.Elements.RemoveAt(3);
-            }
-
-            
-            ScoreAdjustHelper.FixMeasures(viewModel.Data.FirstStaff);
-            
-            try
-            {
-                XDocument musicXmlFile = parser.ParseBack(viewModel.Data);
-
-                if (musicXmlFile == null || filePath == null)
-                {
-                    for (int i = 0; i < viewModel.Data.Staves.Count; i++)
-                    {
-                        viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
-                        ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
-                    }
-                    return;
-                }
-
                 viewModel.XmlPath = filePath;
-
                 viewModel.ScoreFileName = Path.GetFileName(viewModel.XmlPath);
-
-                musicXmlFile.Save(filePath);
-
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving XML: {ex.Message}");
-            }
-
-            for (int i = 0; i < viewModel.Data.Staves.Count; i++)
-            {
-                viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
-                ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
-            }
-
         }
-
 
         public void SaveMusicXML(object sender, RoutedEventArgs e)
         {
@@ -346,45 +311,7 @@ namespace MusicNotesEditor.Views
                 return;
             }
 
-            var parser = new MusicXmlParser();
-
-            foreach (var staff in viewModel.Data.Staves)
-            {
-                staff.Elements.RemoveAt(3);
-            }
-
-
-            ScoreAdjustHelper.FixMeasures(viewModel.Data.FirstStaff);
-
-            try
-            {
-                XDocument musicXmlFile = parser.ParseBack(viewModel.Data);
-
-                if (musicXmlFile == null)
-                {
-                    for (int i = 0; i < viewModel.Data.Staves.Count; i++)
-                    {
-                        viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
-                        ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
-                    }
-                    return;
-                }
-
-
-                musicXmlFile.Save(viewModel.XmlPath);
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving XML: {ex.Message}");
-            }
-
-            for (int i = 0; i < viewModel.Data.Staves.Count; i++)
-            {
-                viewModel.Data.Staves[i].Elements.Insert(3, new Barline(BarlineStyle.None));
-                ScoreAdjustHelper.FixMeasures(viewModel.Data.Staves[i]);
-            }
-
+            App.FileSaveService.SaveMusicXMLInternal(viewModel.Data, viewModel.XmlPath);
         }
 
 
@@ -400,9 +327,45 @@ namespace MusicNotesEditor.Views
         }
 
 
-        public void ExportToPdf(object sender, RoutedEventArgs e)
+        public async void ExportToPdf(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException();
+            string filter = "PDF Files (*.pdf)|*.pdf";
+
+            SaveFileDialog dialog = new SaveFileDialog
+            {
+                Filter = filter
+            };
+
+            string filePath = dialog.ShowDialog() == true ? dialog.FileName : null;
+            string tempPath = "";
+
+            if (!string.IsNullOrWhiteSpace(viewModel.XmlPath))
+            {
+                SaveMusicXML(sender, e);
+            }
+            else
+            {
+                tempPath = Path.Combine(Path.GetTempPath(), $"temp_music_{Guid.NewGuid()}.musicxml");
+                bool success = App.FileSaveService.SaveMusicXMLInternal(viewModel.Data, tempPath);
+            }
+
+            try
+            {
+                var progress = new Progress<string>();
+                if (filePath == null)
+                    return;
+
+                string musicXMLPath = !string.IsNullOrWhiteSpace(tempPath) ? tempPath : viewModel.XmlPath;
+
+                string arguments = $"{musicXMLPath} {filePath}";
+
+                string results = await App.SubProcessService.ExecuteJavaScriptScriptAsync("script.js", arguments, progress);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving XML: {ex.Message}");
+            }
+
         }
 
 

@@ -27,7 +27,7 @@ namespace MusicNotesEditor.ViewModels
     {
         private const int MAX_NUMBER_OF_STAVES = 5;
         private const string LYRICS_PLACEHOLDER = " |";
-        
+
         private readonly List<Type> selectableSymbols = new List<Type>() { 
             typeof(NoteOrRest),
             typeof(Clef),

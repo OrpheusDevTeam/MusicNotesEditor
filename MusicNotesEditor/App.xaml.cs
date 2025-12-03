@@ -2,6 +2,8 @@
 using MusicNotesEditor.Models.Config;
 using MusicNotesEditor.Services.MusicPlayback;
 using MusicNotesEditor.Services.OpenFile;
+using MusicNotesEditor.Services.SaveFile;
+using MusicNotesEditor.Services.SubProcess;
 using System.ComponentModel.DataAnnotations;
 using System.Configuration;
 using System.Data;
@@ -17,6 +19,8 @@ namespace MusicNotesEditor
         public static AppSettings Settings { get; private set; }
         public static IMusicPlaybackService PlaybackService { get; private set; }
         public static IOpenFileService OpenFileService { get; private set; }
+        public static ISubProcessService SubProcessService { get; private set; }
+        public static IFileSaveService FileSaveService { get; private set; }
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -24,6 +28,8 @@ namespace MusicNotesEditor
 
             PlaybackService = new MusicPlaybackService();
             OpenFileService = new OpenFileService();
+            SubProcessService = new SubProcessService();
+            FileSaveService = new FileSaveService();
 
             ConfigureApp();
         }
