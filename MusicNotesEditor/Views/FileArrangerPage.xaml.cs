@@ -542,21 +542,28 @@ namespace MusicNotesEditor.Views
                 Console.WriteLine(pythonResult);
                 // Clean the Python output (remove any extra console output)
                 string cleanJson = ExtractJsonFromOutput(pythonResult);
-                Console.WriteLine(cleanJson);
+                
                 dynamic results = JsonConvert.DeserializeObject(cleanJson);
-                Console.WriteLine(results);
+                
                 // Access properties safely
-                string status = results.status;
-                if (status == "success")
+                if (results != null)
                 {
-                    string filePath = results.filepath;
-                    Console.WriteLine($"Status: {status}, FilePath: {filePath}");
-                    NavigationService.Navigate(new MusicEditorPage(filePath));
+                    string status = results.status;
+                    if (status == "success")
+                    {
+                        string filePath = results.filepath;
+                        Console.WriteLine($"Status: {status}, FilePath: {filePath}");
+                        NavigationService.Navigate(new MusicEditorPage(filePath));
+                    }
+                    else
+                    {
+                        string error = results.error;
+                        Console.WriteLine($"Status: {status}, Error: {error}");
+                    }
                 }
                 else
                 {
-                    string error = results.error;
-                    Console.WriteLine($"Status: {status}, Error: {error}");
+                    throw new NullReferenceException("The processing result is missing"); 
                 }
             }
             catch (Exception ex)
@@ -606,7 +613,6 @@ namespace MusicNotesEditor.Views
                 try
                 {
                     progress?.Report("Starting Python script...");
-                    Console.WriteLine("Starting Python script...");
 
                     string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
 
@@ -637,7 +643,6 @@ namespace MusicNotesEditor.Views
                                 {
                                     progress?.Report($"Processing: {e.Data}");
                                 }
-                                Console.WriteLine($"Output: {e.Data}");
                             }
                         };
 
@@ -647,7 +652,6 @@ namespace MusicNotesEditor.Views
                         };
 
                         progress?.Report("Executing Python script...");
-                        Console.WriteLine("Executing Python script...");
                         process.Start();
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
@@ -667,7 +671,6 @@ namespace MusicNotesEditor.Views
                         }
 
                         progress?.Report("Python script completed successfully");
-                        Console.WriteLine("Python script completed successfully");
                         return outputBuilder.ToString();
                     }
                 }
@@ -713,87 +716,6 @@ namespace MusicNotesEditor.Views
                 fileItems[i].Order = i + 1;
             }
         }
-
-        private async Task GenerateThumbnailAsync(FileItem fileItem)
-        {
-            try
-            {
-                // Set a temporary placeholder immediately
-                fileItem.Thumbnail = CreateDefaultThumbnail("Loading...");
-
-                var thumbnail = await Task.Run(() => CreateThumbnail(fileItem.FilePath));
-                if (thumbnail != null)
-                {
-                    fileItem.Thumbnail = thumbnail;
-                }
-                else
-                {
-                    fileItem.Thumbnail = CreateDefaultThumbnail("Error");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error generating thumbnail for {fileItem.FileName}: {ex.Message}");
-                fileItem.Thumbnail = CreateDefaultThumbnail("Error");
-            }
-        }
-
-        private BitmapImage CreateThumbnail(string filePath)
-        {
-            var extension = Path.GetExtension(filePath).ToLower();
-
-            try
-            {
-                switch (extension)
-                {
-                    case ".png":
-                    case ".jpg":
-                    case ".jpeg":
-                        return CreateImageThumbnail(filePath);
-                    case ".pdf":
-                        return CreatePdfThumbnail(filePath);
-                    default:
-                        return CreateDefaultThumbnail("Unsupported");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error creating thumbnail for {filePath}: {ex.Message}");
-                return CreateDefaultThumbnail("Error");
-            }
-        }
-
-        private BitmapImage CreateImageThumbnail(string imagePath)
-        {
-            try
-            {
-                var bitmapImage = new BitmapImage();
-                using (var fileStream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
-                {
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = fileStream;
-                    bitmapImage.DecodePixelWidth = 120; // Reduce size for thumbnail
-                    bitmapImage.DecodePixelHeight = 90; // Maintain aspect ratio
-                    bitmapImage.Rotation = Rotation.Rotate0;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze(); // Important for cross-thread access
-                return bitmapImage;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error loading image {imagePath}: {ex.Message}");
-                return CreateDefaultThumbnail("Image Error");
-            }
-        }
-
-        private BitmapImage CreatePdfThumbnail(string pdfPath)
-        {
-            // For now, return a PDF placeholder
-            return CreateDefaultThumbnail("PDF");
-        }
-
         private BitmapImage CreateDefaultThumbnail(string text = "Preview")
         {
             try
@@ -847,45 +769,6 @@ namespace MusicNotesEditor.Views
                 Debug.WriteLine($"Error creating default thumbnail: {ex.Message}");
                 // Return a simple colored rectangle as fallback
                 return CreateSimpleColorThumbnail(Colors.LightGray);
-            }
-        }
-
-        private BitmapImage CreateSimpleColorThumbnail(Color color)
-        {
-            try
-            {
-                var renderTarget = new RenderTargetBitmap(60, 45, 96, 96, PixelFormats.Pbgra32);
-                var drawingVisual = new DrawingVisual();
-
-                using (var drawingContext = drawingVisual.RenderOpen())
-                {
-                    drawingContext.DrawRectangle(new SolidColorBrush(color), null, new Rect(0, 0, 60, 45));
-                }
-
-                renderTarget.Render(drawingVisual);
-                renderTarget.Freeze();
-
-                // Convert RenderTargetBitmap to BitmapImage
-                var bitmapImage = new BitmapImage();
-                using (var stream = new MemoryStream())
-                {
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(renderTarget));
-                    encoder.Save(stream);
-                    stream.Position = 0;
-
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.StreamSource = stream;
-                    bitmapImage.EndInit();
-                }
-                bitmapImage.Freeze();
-                return bitmapImage;
-            }
-            catch
-            {
-                // Ultimate fallback - return null
-                return null;
             }
         }
 
