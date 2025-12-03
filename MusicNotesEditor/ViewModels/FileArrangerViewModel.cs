@@ -10,7 +10,7 @@ using Manufaktura.Controls.Parser;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
 using MusicNotesEditor.Views;
-using static System.Formats.Asn1.AsnWriter;
+
 namespace MusicNotesEditor.ViewModels
 {
     class FileArrangerViewModel : ViewModel
