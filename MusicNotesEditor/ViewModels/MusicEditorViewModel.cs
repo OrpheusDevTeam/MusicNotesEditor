@@ -20,6 +20,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Xml;
 using System.Xml.Linq;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace MusicNotesEditor.ViewModels
 {
@@ -114,6 +115,7 @@ namespace MusicNotesEditor.ViewModels
             };
             ScoreFileName = "Untitled Score";
 
+
             int measuresInLine = Math.Max(
                 App.Settings.DefaultInitialMeasures.Value / numberOfParts,
                 App.Settings.MinimalInitialMeasurePerStaff.Value);
@@ -145,21 +147,25 @@ namespace MusicNotesEditor.ViewModels
             foreach (var staff in score.Staves)
             {
                 staff.MeasureAddingRule = Staff.MeasureAddingRuleEnum.AddMeasuresManually;
+                staff.Elements.Insert(3, new Barline(BarlineStyle.None));
+                if(staff.Elements.Last() is Barline barline)
+                {
+                    barline.Style = BarlineStyle.LightHeavy;
+                }
                 for (int i = staff.Elements.Count - 1; i >= 0; i--)
                 {
                     if (staff.Elements[i] is Rest rest)
                     {
                         staff.Elements[i] = new CorrectRest(rest.Duration);
                     }
-                    else if (staff.Elements[i] is TimeSignature)
-                    {
-                        staff.Elements.Insert(i + 1, new Barline(BarlineStyle.None));
-                    }
+                    //else if (staff.Elements[i] is TimeSignature)
+                    //{
+                    //    staff.Elements.Insert(i + 1, );
+                    //}
                 }
                 ScoreAdjustHelper.FixMeasures(staff);
             }
             Data = score;
-
         }
 
         public void PlayScore()
@@ -188,8 +194,8 @@ namespace MusicNotesEditor.ViewModels
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, CurrentNote, IsRest, CurrentAccidental);        
-
+            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, CurrentNote, IsRest, CurrentAccidental, noteViewer);
+            MeasureHelper.ValidateMeasures(Data, noteViewer);
             stopwatch.Stop();
             Console.WriteLine($"Execution Time: {stopwatch.ElapsedMilliseconds} ms");
         }
@@ -293,12 +299,16 @@ namespace MusicNotesEditor.ViewModels
 
             Console.WriteLine("DELETING AND PASSED!!!");
 
-            ScoreEditHelper.DeleteElements(SelectedSymbols);
+            bool shouldStillBeSelected = ScoreEditHelper.DeleteElements(SelectedSymbols);
+
+            if(!shouldStillBeSelected)
+                UnSelectElements();
 
             ScoreEditHelper.Rerender(Data);
-            
-            SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
 
+            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth);
+            SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
+            MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
 
 
@@ -351,6 +361,7 @@ namespace MusicNotesEditor.ViewModels
                 MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, SelectedSymbols[0]);
 
             SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
+            MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
 
 
@@ -365,6 +376,7 @@ namespace MusicNotesEditor.ViewModels
                 MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, SelectedSymbols[0]);
 
             UnSelectElements();
+            MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
 
 

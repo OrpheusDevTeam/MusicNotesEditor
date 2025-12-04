@@ -36,6 +36,7 @@ namespace MusicNotesEditor.Helpers
                 { TypeOfClef: ClefType.FClef, Line: 4 } => Pitch.A3, // Bass
                 { TypeOfClef: ClefType.FClef, Line: 3 } => Pitch.C4, // Baritone F
                 { TypeOfClef: ClefType.FClef, Line: 5 } => Pitch.F3, // Subbass
+                { TypeOfClef: ClefType.FClef, Line: 2 } => Pitch.E4, // F2 clef (added)
                 { TypeOfClef: ClefType.CClef, Line: 1 } => Pitch.E5, // Soprano
                 { TypeOfClef: ClefType.CClef, Line: 2 } => Pitch.C5, // Mezzo-soprano
                 { TypeOfClef: ClefType.CClef, Line: 3 } => Pitch.A4, // Alto

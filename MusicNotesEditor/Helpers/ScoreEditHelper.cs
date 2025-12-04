@@ -18,7 +18,7 @@ namespace MusicNotesEditor.Helpers
         private const int TEMP_NOTE_OFFSET = 8;
 
         public static void InsertNote(Score score, double clickXPos, double clickYPos, double noteViewerContentWidth,
-            RhythmicDuration? currentNote, bool isRest, int accidental)
+            RhythmicDuration? currentNote, bool isRest, int accidental, NoteViewer noteViewer)
         {
             // Additional Staff lines gives twice as many additional positions for notes to be in
             var additionalPositions = App.Settings.AdditionalStaffLines.Value * 2;
@@ -50,10 +50,15 @@ namespace MusicNotesEditor.Helpers
                     break;
                 }
             }
-
+            Console.WriteLine($"START INDEXING!!!!!!!!!!!!!!!: {currentMeasureStartIndex}");
+            if (currentMeasure.Elements.Last() is PrintSuggestion)
+                currentMeasure.Elements.RemoveAt(currentMeasure.Elements.Count - 1);
             int currentMeasureEndIndex = currentMeasureStartIndex + currentMeasure.Elements.Count - 1;
+            Console.WriteLine($"summing INDEXING!!!!!!!!!!!!!!!: {string.Join(", ",currentMeasure.Elements)}");
             if (currentMeasure.Number == currentMeasure.Staff.Measures.Last().Number)
                 currentMeasureEndIndex++;
+            Console.WriteLine($"REND INDEXING!!!!!!!!!!!!!!!: {currentMeasureEndIndex}");
+
 
             // Replace rests with temporary notes
             for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
@@ -117,11 +122,13 @@ namespace MusicNotesEditor.Helpers
 
             Proportion? timeInMetrum = null;
             Clef? lastClef = null;
+            Proportion currentTimeInMetrum = new Proportion(0, 1);
 
             // Get time signature
             for (int i = 0; i < currentMeasureEndIndex; i++)
             {
                 var element = staffElements[i];
+                Console.WriteLine(element.Measure);
                 if (element is TimeSignature metrum)
                 {
                     timeInMetrum = metrum.NumberValue;
@@ -130,17 +137,25 @@ namespace MusicNotesEditor.Helpers
                 {
                     lastClef = clef;
                 }
+                
+            }
+
+            for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
+            {
+                var element = staffElements[i];;
+                
+                if (element is NoteOrRest noteOrRest)
+                {
+                    currentTimeInMetrum += noteOrRest.Duration.ToProportion();
+
+                    Console.WriteLine($"CURRENT TIME SO FAR : {currentTimeInMetrum}");
+                }
+                
             }
 
             var newNoteProportion = currentNote.Value.ToProportion();
 
-            // Stop if chosen note takes more space than measure
-            if (newNoteProportion > timeInMetrum)
-            {
-                // Add notification
-                return;
-            }
-
+            
             // Replace temporary notes with rests
             for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
             {
@@ -151,6 +166,17 @@ namespace MusicNotesEditor.Helpers
                 }
             }
 
+            // Stop if chosen note takes more space than measure
+            if (newNoteProportion > timeInMetrum || currentTimeInMetrum > timeInMetrum)
+            {
+                Console.WriteLine($"LEAVING EARLY: {currentTimeInMetrum}");
+                ScoreAdjustHelper.FixMeasures(currentMeasure.Staff);
+
+                // Add notification
+                return;
+            }
+
+
             Pitch pitch = PitchHelper.GetPitchFromIndex(staffLineIndex, lastClef);
             var newTempNote = new TempNote(pitch, currentNote.Value);
             staffElements.Insert(elementOnLeftIndex + 1,
@@ -158,6 +184,11 @@ namespace MusicNotesEditor.Helpers
 
             // Remove stuff over metrum
             Proportion excessProportion = newNoteProportion;
+
+            Console.WriteLine($"OLD PROPORTION: {excessProportion} CURRENT: {currentTimeInMetrum}");
+            excessProportion += currentTimeInMetrum - timeInMetrum ?? new Proportion(0,1);
+
+            Console.WriteLine($"NEW PROPORTION: {excessProportion}");
             Proportion zeroProportion = new Proportion(0, 1);
             int startingIndex = elementOnLeftIndex + 1;
             int direction = Direction(isRightCloser);
@@ -285,14 +316,12 @@ namespace MusicNotesEditor.Helpers
                 }
                 else
                 {
-                    direction *= -1;
                 }
                 cursor += direction;
                 startOverridingNotes = notCorrectRestNeighboursCount > 1;
             }
 
-            ScoreAdjustHelper.FixMeasures(currentMeasure.Staff);
-
+            
             // Replace new note with note
             for (int i = currentMeasureStartIndex; i < staffElements.Count; i++)
             {
@@ -315,22 +344,84 @@ namespace MusicNotesEditor.Helpers
             }
 
             ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth);
+            
         }
 
 
-        public static void DeleteElements(List<MusicalSymbol> selectedSymbols)
+        public static bool DeleteElements(List<MusicalSymbol> selectedSymbols)
         {
+            var result = true;
             for (int i = 0; i < selectedSymbols.Count; i++)
             {
+                Proportion? timeInMetrum = null;
+                Proportion takenDuration = new Proportion(0, 1);
+                var symbolStaff = selectedSymbols[i].Measure.Staff;
+                // Get time signature
+                for (int j = 0; j < symbolStaff.Elements.Count; j++)
+                {
+                    var element = symbolStaff.Elements[j];
+                    if (element == selectedSymbols[i])
+                        break;
+                    if (element is TimeSignature metrum)
+                    {
+                        timeInMetrum = metrum.NumberValue;
+                    }
+                }
+
+                if (timeInMetrum != null)
+                {
+                    foreach (var element in selectedSymbols[i].Measure.Elements)
+                    {
+                        if(element is NoteOrRest noteOrRest)
+                        {
+                            takenDuration += noteOrRest.Duration.ToProportion();
+                        }
+                    }
+                    if (takenDuration > timeInMetrum && selectedSymbols[i] is NoteOrRest elementWithDuration)
+                    {
+                        int selectedElementIndex = symbolStaff.Elements.IndexOf(selectedSymbols[i]);
+                        symbolStaff.Elements.RemoveAt(selectedElementIndex);
+
+                        Console.WriteLine($"SELETING DELETING AND NOW FIXING BEFORE: {takenDuration}");
+                        takenDuration -= elementWithDuration.Duration.ToProportion();
+                        var fillingDuration = DurationHelper.HalfDuration(elementWithDuration.Duration);
+
+                        Console.WriteLine($"SELETING DELETING AND NOW FIXING: {takenDuration}");
+                        while (takenDuration < timeInMetrum)
+                        {
+
+                            Console.WriteLine($"SELETING DELETING AND NOW FIXING IN LOPP: {takenDuration} ");
+                            if (timeInMetrum - takenDuration > fillingDuration.ToProportion())
+                            {
+                                fillingDuration = DurationHelper.HalfDuration(fillingDuration);
+                                if (timeInMetrum - takenDuration > fillingDuration.ToProportion())
+                                    continue;
+                            }
+                            if(elementWithDuration is Note note1)
+                            {
+                                symbolStaff.Elements.Insert(selectedElementIndex, new Note(note1.Pitch, fillingDuration));
+                            }
+                            if (elementWithDuration is CorrectRest rest)
+                            {
+                                symbolStaff.Elements.Insert(selectedElementIndex, new CorrectRest(fillingDuration));
+                            }
+
+                            takenDuration += fillingDuration.ToProportion();
+                        }
+                        result = false;
+                        continue;
+                    }
+                }
+
                 if (selectedSymbols[i] is Note note)
                 {
-                    var symbolStaff = selectedSymbols[i].Measure.Staff;
                     var newRest = new CorrectRest(note.Duration);
                     symbolStaff.Elements[symbolStaff.Elements.IndexOf(selectedSymbols[i])] = newRest;
                     selectedSymbols[i] = newRest;
                 }
             }
 
+            return result;
         }
 
 
@@ -345,6 +436,8 @@ namespace MusicNotesEditor.Helpers
                 IsVisible = false,
             });
             score.FirstStaff.Elements.RemoveAt(score.FirstStaff.Elements.Count - 1);
+
+            MeasureHelper.ValidateMeasures(score, noteViewer);
 
             if(noteViewer != null && selectedElements != null)
                 SelectionHelper.ColorSelectedElements(noteViewer, selectedElements);

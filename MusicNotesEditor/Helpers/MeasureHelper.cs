@@ -1,4 +1,5 @@
 ﻿using Manufaktura.Controls.Model;
+using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
 using MusicNotesEditor.Models.Framework;
 using System;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace MusicNotesEditor.Helpers
 {
@@ -103,5 +105,54 @@ namespace MusicNotesEditor.Helpers
             return measure.Staff.Elements.IndexOf(measure.Elements[0]);
         }
 
+        public static void ValidateMeasures(Score score, NoteViewer? noteViewer)
+        {
+            if (noteViewer == null)
+                return;
+
+            List<Measure> invalidMeasures = new List<Measure>();
+
+            foreach(var staff in score.Staves)
+            {
+                Proportion? timeInMetrum = null;
+                Proportion takenDuration = new Proportion(0, 1);
+
+                for(int i = 0; i < staff.Elements.Count; i++)
+                {
+                    var element = staff.Elements[i];
+                    if (element is TimeSignature metrum)
+                    {
+                        timeInMetrum = metrum.NumberValue;
+                    }
+                    else if (element is Barline barline)
+                    {
+                        if (timeInMetrum != null && barline.Style != BarlineStyle.None && timeInMetrum != takenDuration)
+                        {
+                            invalidMeasures.Add(element.Measure);
+                        }
+                        takenDuration = new Proportion(0, 1);
+                    }
+                    else if (element is NoteOrRest noteOrRest)
+                    {
+                        takenDuration += noteOrRest.Duration.ToProportion();
+                    }
+                }
+            }
+
+            Console.WriteLine($"invalid MEASURES!!!: {string.Join(", ", invalidMeasures)}");
+
+            List<MusicalSymbol> invalidMeasureLines = new List<MusicalSymbol>();
+            foreach(var invalidMeasure in invalidMeasures)
+            {
+                foreach(var staffFragment in invalidMeasure.System.Staves)
+                {
+                    Console.WriteLine($"INVALID STAFF FRAGMENT: {staffFragment} at {staffFragment.ActualRenderedBounds} of {staffFragment.RenderedWidth}");
+                    invalidMeasureLines.Add(staffFragment);
+                }
+                
+            }
+            SelectionHelper.ColorElements(noteViewer, invalidMeasureLines, Color.FromRgb(250, 0, 0));
+
+        }
     }
 }
