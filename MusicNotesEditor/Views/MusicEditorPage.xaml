@@ -155,7 +155,7 @@
                 BorderBrush="Black"
                 IsSelectable="False"
                 RenderingMode="SinglePage"
-                CurrentPage="1"
+                CurrentPage="{Binding CurrentPageIndex}"
                 ZoomFactor="1.25"
                 ScoreSource="{Binding Data}" 
                 Loaded="NoteViewer_Loaded"

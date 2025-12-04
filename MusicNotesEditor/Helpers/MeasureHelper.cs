@@ -14,7 +14,7 @@ namespace MusicNotesEditor.Helpers
     public class MeasureHelper
     {
 
-        public static void AddMeasure(Score score, double noteViewerContentWidth, MusicalSymbol? selectedSymbol = null)
+        public static void AddMeasure(Score score, double noteViewerContentWidth, int currentPageIndex, MusicalSymbol? selectedSymbol = null)
         {
 
             foreach (var staff in score.Staves)
@@ -49,11 +49,11 @@ namespace MusicNotesEditor.Helpers
                 
             }
             
-            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth);
+            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, currentPageIndex);
         }
 
 
-        public static void DeleteMeasure(Score score, double noteViewerContentWidth, MusicalSymbol? selectedSymbol = null)
+        public static void DeleteMeasure(Score score, double noteViewerContentWidth, int currectPageIndex, MusicalSymbol? selectedSymbol = null)
         {
 
             foreach (var staff in score.Staves)
@@ -89,7 +89,7 @@ namespace MusicNotesEditor.Helpers
 
             }
 
-            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth);
+            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, currectPageIndex);
         }
 
 

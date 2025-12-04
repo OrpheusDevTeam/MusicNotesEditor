@@ -20,7 +20,6 @@ using System.Windows;
 using System.Windows.Media;
 using System.Xml;
 using System.Xml.Linq;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace MusicNotesEditor.ViewModels
 {
@@ -53,6 +52,7 @@ namespace MusicNotesEditor.ViewModels
         private string _scoreFileName;
         private ScorePlayer? player = null;
         private Score data;
+        private int _currentPageIndex = 1;
         public Score Data
         {
             get { return data; }
@@ -63,6 +63,12 @@ namespace MusicNotesEditor.ViewModels
         {   
             get { return _scoreFileName; }
             set { _scoreFileName = value; OnPropertyChanged(() => ScoreFileName); }
+        }
+
+        public int CurrentPageIndex
+        {
+            get { return _currentPageIndex; }
+            set { _currentPageIndex = value; OnPropertyChanged(() => CurrentPageIndex); }
         }
 
         public NoteViewer noteViewer;
@@ -110,6 +116,7 @@ namespace MusicNotesEditor.ViewModels
         {
             if (!string.IsNullOrEmpty(XmlPath))
             {
+                //ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, CurrentPageIndex);
                 ScoreFileName = Path.GetFileName(XmlPath);
                 return;
             };
@@ -131,7 +138,6 @@ namespace MusicNotesEditor.ViewModels
 
                 RemoveLastN(Data.Staves[i].Elements, 1);
                 Data.Staves[i].AddBarline(BarlineStyle.LightHeavy);
-                ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth);
             }
         }
 
@@ -194,7 +200,7 @@ namespace MusicNotesEditor.ViewModels
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, CurrentNote, IsRest, CurrentAccidental, noteViewer);
+            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, CurrentNote, IsRest, CurrentAccidental, noteViewer, CurrentPageIndex);
             MeasureHelper.ValidateMeasures(Data, noteViewer);
             stopwatch.Stop();
             Console.WriteLine($"Execution Time: {stopwatch.ElapsedMilliseconds} ms");
@@ -306,7 +312,7 @@ namespace MusicNotesEditor.ViewModels
 
             ScoreEditHelper.Rerender(Data);
 
-            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth);
+            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, CurrentPageIndex);
             SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
             MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
@@ -356,9 +362,9 @@ namespace MusicNotesEditor.ViewModels
         public void AddNewMeasure()
         {
             if(SelectedSymbols.Count == 0)
-                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth);
+                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, CurrentPageIndex);
             else if (SelectedSymbols.Count == 1)
-                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, SelectedSymbols[0]);
+                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, CurrentPageIndex, SelectedSymbols[0]);
 
             SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
             MeasureHelper.ValidateMeasures(Data, noteViewer);
@@ -371,9 +377,9 @@ namespace MusicNotesEditor.ViewModels
                 return;
 
             if (SelectedSymbols.Count == 0)
-                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth);
+                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, CurrentPageIndex);
             else if (SelectedSymbols.Count == 1)
-                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, SelectedSymbols[0]);
+                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, CurrentPageIndex, SelectedSymbols[0]);
 
             UnSelectElements();
             MeasureHelper.ValidateMeasures(Data, noteViewer);

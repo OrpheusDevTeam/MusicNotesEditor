@@ -120,7 +120,7 @@ namespace MusicNotesEditor.Views
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
             viewModel.LoadInitialTemplate();
-            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth());
+            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth(), viewModel.CurrentPageIndex);
 
             MeasureHelper.ValidateMeasures(viewModel.Data, noteViewer);
         }
@@ -674,15 +674,20 @@ namespace MusicNotesEditor.Views
             //    Console.WriteLine($"INDICATORXD: {noteIndicator} of text: {noteIndicator.Text} and size {noteIndicator.ActualWidth} and parent {noteIndicator.Parent}");
 
 
-            //    var staves = viewModel.Data.Staves;
-            //    var systems = viewModel.Data.Systems;
-            //    var parts = viewModel.Data.Parts;
-            //    var pages = viewModel.Data.Pages;
+            var staves = viewModel.Data.Staves;
+            var systems = viewModel.Data.Systems;
+            var parts = viewModel.Data.Parts;
+            var pages = viewModel.Data.Pages;
 
-            //    Console.WriteLine($"Staves: {staves.Count}");
-            //    Console.WriteLine($"Systems: {systems.Count}");
-            //    Console.WriteLine($"Parts: {parts.Count}");
-            //    Console.WriteLine($"Pages: {pages.Count}");
+            Console.WriteLine($"Staves: {staves.Count}");
+            Console.WriteLine($"Systems: {systems.Count}");
+            Console.WriteLine($"Parts: {parts.Count}");
+            Console.WriteLine($"Pages: {pages.Count}");
+
+            foreach(var system in systems)
+            {
+                Console.WriteLine($"STAFF FRAGMENTS OF {system}: {string.Join(" | ", system.Staves)}");
+            }
 
             //    Console.WriteLine("XD");
 

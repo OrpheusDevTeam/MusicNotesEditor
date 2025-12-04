@@ -18,7 +18,7 @@ namespace MusicNotesEditor.Helpers
         private const int TEMP_NOTE_OFFSET = 8;
 
         public static void InsertNote(Score score, double clickXPos, double clickYPos, double noteViewerContentWidth,
-            RhythmicDuration? currentNote, bool isRest, int accidental, NoteViewer noteViewer)
+            RhythmicDuration? currentNote, bool isRest, int accidental, NoteViewer noteViewer, int currentPageIndex)
         {
             // Additional Staff lines gives twice as many additional positions for notes to be in
             var additionalPositions = App.Settings.AdditionalStaffLines.Value * 2;
@@ -343,7 +343,7 @@ namespace MusicNotesEditor.Helpers
                 }
             }
 
-            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth);
+            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, currentPageIndex);
             
         }
 
@@ -384,17 +384,17 @@ namespace MusicNotesEditor.Helpers
 
                         Console.WriteLine($"SELETING DELETING AND NOW FIXING BEFORE: {takenDuration}");
                         takenDuration -= elementWithDuration.Duration.ToProportion();
-                        var fillingDuration = DurationHelper.HalfDuration(elementWithDuration.Duration);
+                        var fillingDuration = elementWithDuration.Duration;
 
                         Console.WriteLine($"SELETING DELETING AND NOW FIXING: {takenDuration}");
                         while (takenDuration < timeInMetrum)
                         {
 
-                            Console.WriteLine($"SELETING DELETING AND NOW FIXING IN LOPP: {takenDuration} ");
-                            if (timeInMetrum - takenDuration > fillingDuration.ToProportion())
+                            Console.WriteLine($"SELETING DELETING AND NOW FIXING IN LOPP: {timeInMetrum - takenDuration} > {fillingDuration} ");
+                            if (timeInMetrum - takenDuration < fillingDuration.ToProportion())
                             {
                                 fillingDuration = DurationHelper.HalfDuration(fillingDuration);
-                                if (timeInMetrum - takenDuration > fillingDuration.ToProportion())
+                                if (timeInMetrum - takenDuration < fillingDuration.ToProportion())
                                     continue;
                             }
                             if(elementWithDuration is Note note1)

@@ -1,5 +1,7 @@
 ﻿using Manufaktura.Controls.Model;
+using Manufaktura.Controls.Model.Collections;
 using Manufaktura.Controls.Model.Events;
+using Manufaktura.Controls.WPF;
 using MusicNotesEditor.Models.Framework;
 using System;
 using System.Collections.Generic;
@@ -12,7 +14,7 @@ namespace MusicNotesEditor.Helpers
     internal class ScoreAdjustHelper
     {
 
-        public static void AdjustWidth(Score score, double noteViewerContentWidth)
+        public static void AdjustWidth(Score score, double noteViewerContentWidth, int pageIndex)
         {
             foreach (var staff in score.Staves)
             {
@@ -45,24 +47,34 @@ namespace MusicNotesEditor.Helpers
                     }
                 }
 
+
                 FixMeasures(staff);
+
+                if (staff == score.FirstStaff)
+                {
+
+
+
+                    var page = score.Pages.Last();
+                    var lastCorrectSystem = staff.Elements.Last().Measure.System;
+                    int lastCorrectSystemIndex = page.Systems.IndexOf(lastCorrectSystem);
+                    List<StaffSystem> newStaffSystems = new List<StaffSystem>();
+
+
+                    Console.WriteLine($"\nFINDING LAST SYSTEM: \n{lastCorrectSystem} \nindex: {lastCorrectSystemIndex} \nmeasure: {staff.Elements.Last().Measure}\n");
+
+                    for (int i = page.Systems.Count - 1; i > lastCorrectSystemIndex; i--)
+                    {
+                        Console.WriteLine($"CLEANING UP STAFF SYSTEM AT : {i}");
+                        page.Systems.RemoveAt(i);
+                    }
+
+                    ScoreEditHelper.Rerender(score);
+                }
+
+
             }
 
-            //int systemCount = 0;
-            //foreach(var staff in score.Staves)
-            //{
-            //    var lastMeasure = staff.Measures.Last();
-            //    var lastValidSystem = lastMeasure.Staff.Score.Systems.IndexOf(lastMeasure.System);
-            //    if(lastValidSystem > systemCount)
-            //    {
-            //        systemCount = lastValidSystem;
-            //    }
-            //}
-
-            //for(int i = score.Systems.Count - 1; i > systemCount; i--)
-            //{
-            //    score.Systems.RemoveAt(i);
-            //}
         }
 
         public static void FixMeasures(Staff staff)
