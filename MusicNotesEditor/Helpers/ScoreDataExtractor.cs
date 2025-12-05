@@ -19,37 +19,43 @@ namespace MusicNotesEditor.Helpers
                     continue;
 
                 int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
-                var lines = AddValuesInBetween(
-                    ExpandList(
-                        system.LinePositions.Values.SelectMany(v => v).ToList(), additionalStaffLines
-                    )
-                );
 
-                if (lines.Count == 0)
-                    continue;
-
-                int threshold = App.Settings.SnappingThreshold.Value;
-
-                double minY = lines.Min() - threshold;
-                double maxY = lines.Max() + threshold;
-
-                if (yPosition < minY || yPosition > maxY)
-                    continue;
-
-                int closestIndex = 0;
-                double smallestDiff = double.MaxValue;
-
-                for (int i = 0; i < lines.Count; i++)
+                var systemLines = system.LinePositions.Values.SelectMany(v => v).ToList();
+                for(int index=0; index < systemLines.Count; index += NUMBER_OF_LINES_IN_STAFF)
                 {
-                    double diff = Math.Abs(lines[i] - yPosition);
-                    if (diff < smallestDiff)
+                    var staffLinesInSystem = systemLines.GetRange(index, NUMBER_OF_LINES_IN_STAFF);
+                    var lines = AddValuesInBetween(
+                        ExpandList(
+                            staffLinesInSystem, additionalStaffLines
+                        )
+                    );
+
+                    if (lines.Count == 0)
+                        continue;
+
+                    int threshold = App.Settings.SnappingThreshold.Value;
+
+                    double minY = lines.Min() - threshold;
+                    double maxY = lines.Max() + threshold;
+
+                    if (yPosition < minY || yPosition > maxY)
+                        continue;
+
+                    int closestIndex = 0;
+                    double smallestDiff = double.MaxValue;
+
+                    for (int i = 0; i < lines.Count; i++)
                     {
-                        smallestDiff = diff;
-                        closestIndex = i;
+                        double diff = Math.Abs(lines[i] - yPosition);
+                        if (diff < smallestDiff)
+                        {
+                            smallestDiff = diff;
+                            closestIndex = i;
+                        }
                     }
+                    linePositions = lines;
+                    return closestIndex;
                 }
-                linePositions = lines;
-                return closestIndex;
             }
             linePositions = [];
             return -1;

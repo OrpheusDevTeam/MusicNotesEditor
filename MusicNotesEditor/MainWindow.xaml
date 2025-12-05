@@ -35,7 +35,7 @@
 
                 <!-- App Icon -->
                 <Image Grid.Column="0" 
-                       Source="/Assets/logo_orpheus.png" 
+                       Source="/Assets/logo_orpheus.ico" 
                        Width="16" 
                        Height="16" 
                        Margin="10,0,0,0"

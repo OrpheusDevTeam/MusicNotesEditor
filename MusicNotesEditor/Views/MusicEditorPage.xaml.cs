@@ -119,7 +119,8 @@ namespace MusicNotesEditor.Views
 
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
-            viewModel.LoadInitialTemplate();
+            viewModel.LoadInitialTemplate(2);
+            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth(), viewModel.CurrentPageIndex);
             ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth(), viewModel.CurrentPageIndex);
 
             MeasureHelper.ValidateMeasures(viewModel.Data, noteViewer);
@@ -150,10 +151,10 @@ namespace MusicNotesEditor.Views
                     Content = new TextBlock
                     {
                         Inlines =
-                {
-                    new Run(note.NoteName) { FontWeight = FontWeights.Bold },
-                    new Run($"\n{note.Description}"),
-                }
+                        {
+                            new Run(note.NoteName) { FontWeight = FontWeights.Bold },
+                            new Run($"\n{note.Description}"),
+                        }
                     }
                 };
 
@@ -599,6 +600,8 @@ namespace MusicNotesEditor.Views
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (viewModel.CurrentNote == null)
+                return;
             // Update letter position to follow the mouse
             var pos = e.GetPosition(mainCanvas); 
             Canvas.SetLeft(noteIndicator, pos.X - noteIndicator.ActualWidth / 2);
@@ -611,7 +614,7 @@ namespace MusicNotesEditor.Views
                 viewModel.Data,
                 pos.Y,
                 out List<double> closestLinePositions);
-            
+            Console.WriteLine($"LINES LINES LINES: {string.Join("\n\t", closestLinePositions)}");
             if(lineIndex == -1 || viewModel.CurrentNote == null)
             {
                 Canvas.SetTop(noteIndicator, pos.Y - noteIndicator.ActualHeight / 2);
@@ -722,7 +725,7 @@ namespace MusicNotesEditor.Views
             //        Console.WriteLine($"Fragment: {string.Join(", ", fragment.LinePositions)}");
             //    }
             //    Console.WriteLine("\nAll elements\n:");
-
+            
             var staves2 = noteViewer.ScoreSource.Staves;
             for (int i = 0; i < staves2.Count; i++)
             {

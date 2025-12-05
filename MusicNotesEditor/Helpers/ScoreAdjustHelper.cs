@@ -4,6 +4,7 @@ using Manufaktura.Controls.Model.Events;
 using Manufaktura.Controls.WPF;
 using MusicNotesEditor.Models.Framework;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +17,8 @@ namespace MusicNotesEditor.Helpers
 
         public static void AdjustWidth(Score score, double noteViewerContentWidth, int pageIndex)
         {
+            Dictionary<Staff, List<Barline>> barlinesInMeasures = new Dictionary<Staff, List<Barline>>();
+
             foreach (var staff in score.Staves)
             {
                 // Remove all existing system breaks
@@ -23,58 +26,56 @@ namespace MusicNotesEditor.Helpers
                 {
                     if (staff.Elements[i] is PrintSuggestion ps && ps.IsSystemBreak)
                         staff.Elements.RemoveAt(i);
-
                 }
-
-                int lastBarlineIndex = -1;
-
-                for (int i = 0; i < staff.Elements.Count; i++)
-                {
-                    var element = staff.Elements[i];
-                    var previousBarlineIndex = lastBarlineIndex;
-                    if (element is Barline)
-                    {
-                        lastBarlineIndex = i;
-                    }
-
-                    var elementXPosition = element.ActualRenderedBounds.SE.X;
-                    //Console.WriteLine($"Barline[{i}] X={lastBarlineXPosition}");
-                    if (elementXPosition > noteViewerContentWidth && i > 0)
-                    {
-                        Console.WriteLine($"I: {i} \tcURENT: {previousBarlineIndex} at {staff.Elements[previousBarlineIndex]}");
-                        ScoreEditHelper.AddNewLine(staff, previousBarlineIndex + 1);
-                        i++;
-                    }
-                }
-
-
-                FixMeasures(staff);
-
-                if (staff == score.FirstStaff)
-                {
-
-
-
-                    var page = score.Pages.Last();
-                    var lastCorrectSystem = staff.Elements.Last().Measure.System;
-                    int lastCorrectSystemIndex = page.Systems.IndexOf(lastCorrectSystem);
-                    List<StaffSystem> newStaffSystems = new List<StaffSystem>();
-
-
-                    Console.WriteLine($"\nFINDING LAST SYSTEM: \n{lastCorrectSystem} \nindex: {lastCorrectSystemIndex} \nmeasure: {staff.Elements.Last().Measure}\n");
-
-                    for (int i = page.Systems.Count - 1; i > lastCorrectSystemIndex; i--)
-                    {
-                        Console.WriteLine($"CLEANING UP STAFF SYSTEM AT : {i}");
-                        page.Systems.RemoveAt(i);
-                    }
-
-                    ScoreEditHelper.Rerender(score);
-                }
-
-
+                barlinesInMeasures.Add(staff, staff.Elements.OfType<Barline>().ToList());
             }
 
+            int numberOfMeasures = score.FirstStaff.Elements.OfType<Barline>().Count();
+            for (int i = 0; i < numberOfMeasures; i++)
+            {
+                int breakIndex = -1;
+                foreach(var staff in barlinesInMeasures.Keys)
+                {
+                    var element = barlinesInMeasures[staff][i];
+                    var elementXPosition = element.ActualRenderedBounds.SE.X;
+                    Console.WriteLine($"ADJUSTING WIDTH, POSITION BREAK: {elementXPosition}");
+                    if (elementXPosition > noteViewerContentWidth && i > 0)
+                    {
+
+                        Console.WriteLine($"ADJUSTING WIDTH, POSITION BREAKING HOORAY");
+                        breakIndex = i;
+                        break;
+                    }
+                }
+                if (breakIndex == -1)
+                    continue;
+
+                foreach(var staff in score.Staves)
+                {
+                    ScoreEditHelper.AddNewLine(staff, staff.Elements.IndexOf(barlinesInMeasures[staff][i-1])+1);
+                }
+            }
+
+            foreach (var staff in score.Staves)
+            {
+                FixMeasures(staff);
+            }
+
+
+            var page = score.Pages.Last();
+            var lastCorrectSystem = score.FirstStaff.Elements.Last().Measure.System;
+            int lastCorrectSystemIndex = page.Systems.IndexOf(lastCorrectSystem);
+            List<StaffSystem> newStaffSystems = new List<StaffSystem>();
+
+            Console.WriteLine($"\nFINDING LAST SYSTEM: \n{lastCorrectSystem} \nindex: {lastCorrectSystemIndex} \nmeasure: {score.FirstStaff.Elements.Last().Measure}\n");
+
+            for (int i = page.Systems.Count - 1; i > lastCorrectSystemIndex; i--)
+            {
+                Console.WriteLine($"CLEANING UP STAFF SYSTEM AT : {i}");
+                page.Systems.RemoveAt(i);
+            }
+
+            ScoreEditHelper.Rerender(score);
         }
 
         public static void FixMeasures(Staff staff)

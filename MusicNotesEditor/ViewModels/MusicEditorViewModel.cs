@@ -5,9 +5,12 @@ using Manufaktura.Controls.Model.Collections;
 using Manufaktura.Controls.Model.Events;
 using Manufaktura.Controls.Model.Rules;
 using Manufaktura.Controls.Parser;
+using Manufaktura.Controls.Rendering;
+using Manufaktura.Controls.Services;
 using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
 using Manufaktura.Music.Model.MajorAndMinor;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models;
 using MusicNotesEditor.Models.Framework;
@@ -15,11 +18,13 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
 using System.Xml;
 using System.Xml.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace MusicNotesEditor.ViewModels
 {
@@ -76,7 +81,7 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialData()
         {
-            LoadInitialData(1);
+            LoadInitialData(2);
         }
 
         public void LoadInitialData(int numberOfParts)
@@ -114,6 +119,7 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialTemplate(int numberOfParts)
         {
+            FixBarlineRenderingStrategy();
             if (!string.IsNullOrEmpty(XmlPath))
             {
                 //ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, CurrentPageIndex);
@@ -126,12 +132,12 @@ namespace MusicNotesEditor.ViewModels
             int measuresInLine = Math.Max(
                 App.Settings.DefaultInitialMeasures.Value / numberOfParts,
                 App.Settings.MinimalInitialMeasurePerStaff.Value);
-
             for (int i = 0; i < numberOfParts; i++)
             {
                 // Fill up stave line 
                 for (int j = 0; j < measuresInLine; j++)
                 {
+                    Console.WriteLine($"CREATING MEASURES: {j}");
                     Data.Staves[i].Add(new CorrectRest(RhythmicDuration.Whole));
                     Data.Staves[i].AddBarline(BarlineStyle.Regular);                    
                 }
@@ -367,9 +373,48 @@ namespace MusicNotesEditor.ViewModels
                 MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, CurrentPageIndex, SelectedSymbols[0]);
 
             SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
+            ScoreEditHelper.Rerender(Data);
             MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
 
+
+        public void FixBarlineRenderingStrategy()
+        {
+            PropertyInfo rendererProperty = noteViewer.GetType().GetProperty("Renderer",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            object renderer = rendererProperty.GetValue(noteViewer);
+
+            PropertyInfo strategiesProperty = renderer.GetType().GetProperty("Strategies",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            var strategies = strategiesProperty.GetValue(renderer) as MusicalSymbolRenderStrategyBase[];
+
+            var oldBarlineStrategy = strategies[0] as BarlineRenderStrategy;
+
+            FieldInfo measurementServiceField = oldBarlineStrategy.GetType().GetField("measurementService",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            var measurementService = measurementServiceField.GetValue(oldBarlineStrategy) as IMeasurementService;
+
+            FieldInfo alterationServiceField = oldBarlineStrategy.GetType().GetField("alterationService",
+    BindingFlags.NonPublic | BindingFlags.Instance);
+
+            var alterationService = alterationServiceField.GetValue(oldBarlineStrategy) as IAlterationService;
+
+            FieldInfo scoreServiceField = oldBarlineStrategy.GetType().GetField("scoreService",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            var scoreService = scoreServiceField.GetValue(oldBarlineStrategy) as IScoreService;
+
+            var replacement = new CorrectBarlineRenderStrategy(measurementService, alterationService, scoreService);
+
+            // Create a new array of the same type
+            strategies[0] = replacement;
+
+    //        strategiesProperty.SetValue(renderer, newArray, BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance,
+    //null, null, null);
+        }
 
         public void DeleteLastMeasure()
         {
