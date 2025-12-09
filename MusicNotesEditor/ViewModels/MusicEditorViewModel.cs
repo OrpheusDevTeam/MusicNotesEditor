@@ -1,5 +1,6 @@
 ﻿using Manufaktura.Controls.Audio;
 using Manufaktura.Controls.Desktop.Audio;
+using Manufaktura.Controls.Desktop.Audio.Midi;
 using Manufaktura.Controls.Model;
 using Manufaktura.Controls.Model.Collections;
 using Manufaktura.Controls.Model.Events;
@@ -164,22 +165,79 @@ namespace MusicNotesEditor.ViewModels
 
         public void PlayScore()
         {
+            LoadData("C:\\Users\\jmosz\\Desktop\\Studia\\MusicXML\\Chant.musicxml");
 
-            //player.Tempo = Tempo.Andante;
-            if(player != null)
-                Console.WriteLine($"STATING IN MUSIC BEFORE {player.State}");
-            if (player == null)
+            var devices = MidiTaskScorePlayer.AvailableDevices.ToList();
+            if (devices.Count == 0)
             {
-                player = new MidiTaskScorePlayer(Data);
-                Console.WriteLine(string.Join(", ", MidiTaskScorePlayer.AvailableDevices));
+                Console.WriteLine("No MIDI devices available.");
+                return;
+            }
+
+            var device = devices.First();
+            Console.WriteLine($"Selected device: {device.Name}");
+
+            // Manually check device state
+            try
+            {
+                if (!device.IsOpen)
+                {
+                    Console.WriteLine("Device is not open. Attempting to open...");
+                    device.Open();
+                    Console.WriteLine("Device opened successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("Device is already open.");
+                }
+
+                // Test the device with a simple message before creating player
+                TestMidiOutput(device);
+
+                // Now create the player
+                player = new MidiTaskScorePlayer(Data, device);
                 player.PlayCueNotes = true;
                 player.Play();
             }
-            Console.WriteLine($"STATING IN MUSIC {player.State}");
-            Console.WriteLine($"TEMPOING IN MUSIC {player.Tempo.BeatsPerMinute}");
-            Console.WriteLine($"STATING IN MUSIC {player.PlayCueNotes}");
-            Console.WriteLine($"CURRENT SYMBOL IN MUSIC {player.CurrentElement}");
-            Console.WriteLine($"CURRENT POSITION IN MUSIC {player.CurrentPosition.PositionX}");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+            }
+        }
+
+        private void TestMidiOutput(MidiDevice device)
+        {
+            try
+            {
+                // Send a simple Note On/Off for middle C
+                var noteOn = new ChannelMessageBuilder();
+                noteOn.Command = ChannelCommand.NoteOn;
+                noteOn.MidiChannel = 0;
+                noteOn.Data1 = 60; // Middle C
+                noteOn.Data2 = 100; // Velocity
+                noteOn.Build();
+
+                device.Send(noteOn.Result);
+                Console.WriteLine("Note On sent successfully");
+
+                Thread.Sleep(100);
+
+                var noteOff = new ChannelMessageBuilder();
+                noteOff.Command = ChannelCommand.NoteOff;
+                noteOff.MidiChannel = 0;
+                noteOff.Data1 = 60;
+                noteOff.Data2 = 0;
+                noteOff.Build();
+
+                device.Send(noteOff.Result);
+                Console.WriteLine("Note Off sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test failed: {ex.Message}");
+                throw;
+            }
         }
 
 
