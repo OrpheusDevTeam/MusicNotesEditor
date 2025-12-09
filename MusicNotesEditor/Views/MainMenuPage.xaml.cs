@@ -50,9 +50,9 @@ namespace MusicNotesEditor.Views
             NavigationService.Navigate(new FileArrangerPage());
         }
 
-        private void OpenSettings(object sender, RoutedEventArgs e)
+        private void OpenCredits(object sender, RoutedEventArgs e)
         {
-            NavigationService.Navigate(new FileArrangerPage());
+            NavigationService.Navigate(new CreditsPage());
         }
     }
 

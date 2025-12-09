@@ -133,11 +133,21 @@
                FontSize="16"/>
 
             <StackPanel Grid.Column="2"
-                        Orientation="Horizontal"
-                        VerticalAlignment="Center" 
-                        >
-                <Button Name="playButton" Content="  Play  " Click="PlayButton_Click" Margin="4" MinHeight="24"/>
-                <Button Content="  Parts  " Margin="4" MinHeight="24"/>
+                Orientation="Horizontal"
+                VerticalAlignment="Center">
+                <Button Name="playButton" 
+                    Content="{Binding PlayButtonText}" 
+                    Click="PlayButton_Click" 
+                    Margin="4" 
+                    MinHeight="24"
+                    MinWidth="60"/>
+                <Button Name="pauseButton"
+                    Content="{Binding PauseButtonText}" 
+                    Click="PauseButton_Click"
+                    Margin="4" 
+                    MinHeight="24"
+                    MinWidth="70"
+                    IsEnabled="{Binding CanPause}"/>
             </StackPanel>
         </Grid>
 
