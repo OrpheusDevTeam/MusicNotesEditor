@@ -1,5 +1,6 @@
 ﻿using Manufaktura.Controls.Audio;
 using Manufaktura.Controls.Desktop.Audio;
+using Manufaktura.Controls.Desktop.Audio.Midi;
 using Manufaktura.Controls.Model;
 using Manufaktura.Controls.Model.Collections;
 using Manufaktura.Controls.Model.Events;
