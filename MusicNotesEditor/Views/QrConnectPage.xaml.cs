@@ -68,8 +68,6 @@ namespace MusicNotesEditor.Views
 
                     if (req != null)
                     {
-
-                        Console.WriteLine("#########################My requests are: " + req.ToString());
                         _currentRequestId = req.Key;
                         DeviceNameText.Text = $"Device '{req.DeviceName}' wants to connect";
 
@@ -94,11 +92,7 @@ namespace MusicNotesEditor.Views
 
             _server.ApproveDevice(_currentRequestId);
 
-            StepsPanel.Visibility = Visibility.Visible;
-            RequestPanel.Visibility = Visibility.Collapsed;
-
-            _cts.Cancel();
-            
+            RestoreState();
         }
 
         private async void Deny_Click(object sender, RoutedEventArgs e)
@@ -107,6 +101,11 @@ namespace MusicNotesEditor.Views
 
             _server.DenyDevice(_currentRequestId);
 
+            RestoreState();
+        }
+
+        private void RestoreState()
+        {
             StepsPanel.Visibility = Visibility.Visible;
             RequestPanel.Visibility = Visibility.Collapsed;
             _currentRequestId = null;
