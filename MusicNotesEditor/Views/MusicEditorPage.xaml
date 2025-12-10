@@ -9,14 +9,38 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="MusicEditorPage">
 
-    <Grid x:Name="mainGrid" Background="{StaticResource BrushMedium}">
+    <Grid PreviewKeyDown="HandleKeyDown" x:Name="mainGrid">
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/background.png" Stretch="UniformToFill"/>
+        </Grid.Background>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
 
-        <Grid Grid.Row="0" Background="{StaticResource BrushDark}" Height="50">
+        <Menu Grid.Row="0" Background="{StaticResource BrushLightest}">
+            <Menu.InputBindings>
+                <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding OpenCommand}"/>
+                <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveCommand}"/>
+                <KeyBinding Key="S" Modifiers="Ctrl+Shift" Command="{Binding SaveAsCommand}"/>
+            </Menu.InputBindings>
+            <MenuItem Header="File">
+                <MenuItem Header="Open" Click="OpenMusicXML"/>
+                <MenuItem Header="Save" Click="SaveMusicXML"/>
+                <MenuItem Header="Save As" Click="SaveNewMusicXML"/>
+                <Separator/>
+                <MenuItem Header="Export">
+                    <MenuItem Header="Export to PDF" Click="ExportToPdf"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Exit" Click="BackToMenu" />
+            </MenuItem>
+        </Menu>
+
+
+        <Grid Grid.Row="1" Background="{StaticResource BrushLightest}" Height="50">
             <Grid.ColumnDefinitions>  
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -32,13 +56,15 @@
                     FontFamily="{StaticResource Polihymnia}"
                     FontSize="24"
                     Padding="10 0 10 0"
+                    Visibility="{Binding IsNothingSelected,
+                                  Converter={StaticResource BoolToVisibility}}"
                     >
                     <ToolBar.Resources>
                         <Style x:Key="ToolBarButtonStyle" TargetType="ToggleButton">
                             <Setter Property="MaxHeight" Value="36"/>
                             <Setter Property="MinWidth" Value="30"/>
                             <Setter Property="VerticalAlignment" Value="Top"/>
-                            <Setter Property="Background" Value="{StaticResource BrushLight}"/>
+                            <Setter Property="Background" Value="{StaticResource BrushLightest}"/>
                             <Setter Property="BorderBrush" Value="Black"/>
                             <Setter Property="BorderThickness" Value="1"/>
                             <Setter Property="Margin" Value="4 0 0 0"/>
@@ -50,6 +76,7 @@
                                         Background="{TemplateBinding Background}"
                                         BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4"
                                         >
                                             <ContentPresenter HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
@@ -60,8 +87,9 @@
                                         <ControlTemplate.Triggers>
                                             <!-- Hover -->
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="border" Property="Background" Value="{StaticResource BrushLightest}"/>
+                                                <Setter TargetName="border" Property="Background" Value="{StaticResource BrushLight}"/>
                                                 <Setter TargetName="border" Property="BorderBrush" Value="Black"/>
+                                                <Setter Property="Foreground" Value="White"/>
                                             </Trigger>
                                             <!-- Selected / Checked -->
                                             <Trigger Property="IsChecked" Value="True">
@@ -75,13 +103,30 @@
                             </Setter>
                         </Style>
                     </ToolBar.Resources>
-                    
                 </ToolBar>
+                <ToolBar x:Name="AccidentalsToolbar"
+                Background="Transparent" 
+                BorderThickness="0"
+                FontFamily="{StaticResource Polihymnia}"
+                FontSize="24"
+                Padding="10 0 10 0"
+                Visibility="{Binding IsNothingSelected,
+                              Converter={StaticResource BoolToVisibility}}"
+                />
+                <ToolBar x:Name="AccidentalsSelectToolbar"
+                Background="Transparent" 
+                BorderThickness="0"
+                FontFamily="{StaticResource Polihymnia}"
+                FontSize="24"
+                Padding="10 0 10 0"
+                Visibility="{Binding IsNoteOrRestSelected,
+                              Converter={StaticResource BoolToVisibility}}"
+                />
             </ToolBarTray>
 
             <TextBlock Grid.Column="1"
-               Text="My Music Editor"
-               Foreground="White"
+               Text="{Binding ScoreFileName}"
+               Foreground="{StaticResource BrushPrimary}"
                FontWeight="Bold"
                VerticalAlignment="Center"
                HorizontalAlignment="Center"
@@ -91,29 +136,30 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center" 
                         >
-                <Button Content="  Play  " Margin="4" MinHeight="24"/>
+                <Button Name="playButton" Content="  Play  " Click="PlayButton_Click" Margin="4" MinHeight="24"/>
                 <Button Content="  Parts  " Margin="4" MinHeight="24"/>
-                <Button Content="  Settings  " Margin="4" MinHeight="24"/>
             </StackPanel>
         </Grid>
 
 
-        <ScrollViewer Grid.Row="1"
+        <ScrollViewer Grid.Row="2"
                   VerticalScrollBarVisibility="Auto"
                   Margin="0,10,0,0">
 
             <ManufakturaControls:NoteViewer
-            Background="White"
-            x:Name="noteViewer" 
-            Margin="30"
-            Padding="100,120,15,20"
-            BorderThickness="1"
-            BorderBrush="Black"
-            IsMusicPaperMode="True"
-            RenderingMode="SinglePage"
-            CurrentPage="1"
-            ZoomFactor="1.25"
-            ScoreSource="{Binding Data}" Loaded="NoteViewer_Loaded"/>
+                Background="White"
+                x:Name="noteViewer" 
+                Margin="30"
+                Padding="100,120,15,40"
+                BorderThickness="1"
+                BorderBrush="Black"
+                IsSelectable="False"
+                RenderingMode="SinglePage"
+                CurrentPage="1"
+                ZoomFactor="1.25"
+                ScoreSource="{Binding Data}" 
+                Loaded="NoteViewer_Loaded"
+            />
         </ScrollViewer>
 
     </Grid>

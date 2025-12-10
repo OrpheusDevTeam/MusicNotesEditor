@@ -5,8 +5,10 @@
         ResizeMode="CanResize"
         SizeChanged="Window_SizeChanged"
         Background="#2D2D30"
-        Height="600" 
-        Width="900">
+        Height="540" 
+        Width="960"
+        MinWidth="480"
+        MinHeight="270">
 
     <Grid Background="#2D2D30" Margin="0">
         <Grid.RowDefinitions>
