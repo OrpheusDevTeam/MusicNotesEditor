@@ -35,6 +35,7 @@ namespace MusicNotesEditor
 
             this.StateChanged += MainWindow_StateChanged;
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            this.WindowState = WindowState.Maximized;
 
             // Remove any window chrome effects
             this.SnapsToDevicePixels = true;

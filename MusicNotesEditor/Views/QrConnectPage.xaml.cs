@@ -17,18 +17,17 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Windows.Automation;
 
 namespace MusicNotesEditor.Views
 {
-    public partial class QrConnectWindow : Page
+    public partial class QrConnectPage : Page
     {
 
         private readonly CertAndServer _server;
         private string? _currentRequestId;
         private CancellationTokenSource _cts = new();
 
-        public QrConnectWindow(string jsonPayload, CertAndServer server)
+        public QrConnectPage(string jsonPayload, CertAndServer server)
         {
             InitializeComponent();
             _server = server;

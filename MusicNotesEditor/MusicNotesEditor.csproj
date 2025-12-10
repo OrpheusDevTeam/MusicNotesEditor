@@ -12,7 +12,11 @@
     <PackageReference Include="Manufaktura.Controls" Version="1.4.0" />
     <PackageReference Include="Manufaktura.Controls.Desktop" Version="1.0.0" />
     <PackageReference Include="Manufaktura.Controls.WPF" Version="1.4.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +24,18 @@
 	<Resource Include="Assets\**\*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+	<Content Include="Assets\script\node_modules\**">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+  </ItemGroup>
+	
   <ItemGroup>
     <None Remove="Views\logo_orpheus.svg" />
   </ItemGroup>
@@ -38,6 +54,18 @@
     <Resource Update="Assets\logo_orpheus.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Resource>
+    <None Update="Assets\script\node.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\script\package-lock.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\script\package.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\script\script.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Assets\musicxml.xsd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
