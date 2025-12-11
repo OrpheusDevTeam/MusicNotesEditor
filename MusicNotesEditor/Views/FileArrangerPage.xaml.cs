@@ -37,7 +37,7 @@ namespace MusicNotesEditor.Views
         {
             InitializeComponent();
             filesListView.ItemsSource = fileItems;
-
+            DataContext = viewModel;
             ConnectEurydice();
 
             Unloaded += FileArrangerPage_Unloaded;
@@ -813,6 +813,9 @@ namespace MusicNotesEditor.Views
             }
         }
 
+
+        
+
         private async void ConnectEurydice()
         {
             if (_server is null)
@@ -909,6 +912,17 @@ namespace MusicNotesEditor.Views
             _processingCancellationTokenSource?.Cancel();
             UpdateLoadingProgress("Cancelling...");
         }
+
+        private void BtnIncrease_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.NumberOfParts++;
+        }
+
+        private void BtnDecrease_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.NumberOfParts--;
+        }
+
     }
 
     public class FileItem : INotifyPropertyChanged

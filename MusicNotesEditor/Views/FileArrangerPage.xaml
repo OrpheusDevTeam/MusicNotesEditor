@@ -1,4 +1,4 @@
-<Page x:Class="MusicNotesEditor.Views.FileArrangerPage"
+﻿<Page x:Class="MusicNotesEditor.Views.FileArrangerPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Title="Arrange Files - Reorder PDF Pages and Images">
@@ -314,6 +314,53 @@
 
                 <!-- Action Buttons -->
                 <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                    <!-- Number of Parts input -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                        <TextBlock Text="Number of Parts:" 
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0"
+                           Foreground="White"
+                            FontSize="20"
+                           FontWeight="Medium"/>
+
+                                <!-- Using NumericUpDown from Extended WPF Toolkit or similar -->
+                                <!-- Option 1: Simple TextBox with validation (built-in) -->
+                        <Border Width="60" Height="35" 
+                            Background="#FF2A2345"
+                            BorderBrush="#FF6B5B95"
+                            BorderThickness="1"
+                            VerticalAlignment="Center">
+                            <TextBlock x:Name="txtPartCount" 
+                               Text="{Binding NumberOfParts}"
+                               FontSize="20"
+                               Foreground="White"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"/>
+                        </Border>
+                        <!-- Option 2: Custom spinner buttons (alternative) -->
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="5,0,0,0">
+                            <Button x:Name="btnIncrease" Content="▲" 
+                                Width="20" Height="15"
+                                FontSize="8"
+                                Padding="0,-2,0,0"
+                                Click="BtnIncrease_Click"
+                                Background="#FF4A4365"
+                                Foreground="White"
+                                BorderBrush="#FF6B5B95"
+                                BorderThickness="1,1,1,0.5"/>
+                            <Button x:Name="btnDecrease" Content="▼" 
+                                Width="20" Height="15"
+                                FontSize="8"
+                                Padding="0,-1,0,0"
+                                Click="BtnDecrease_Click"
+                                Background="#FF4A4365"
+                                Foreground="White"
+                                BorderBrush="#FF6B5B95"
+                                BorderThickness="1,0.5,1,1"/>
+                        </StackPanel>
+                    </StackPanel>
+
                     <Button x:Name="btnCancel" Content="Cancel" Click="BtnCancel_Click"
                             Width="100" Height="35" Margin="0,0,10,0"
                             Background="#FF4A4365"
