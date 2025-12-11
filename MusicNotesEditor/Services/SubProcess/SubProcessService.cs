@@ -10,34 +10,33 @@ namespace MusicNotesEditor.Services.SubProcess
 {
     public class SubProcessService : ISubProcessService
     {
-
-
-       
-
-
         public async Task<string> ProcessFilesWithPythonAsync(string[] orderedFiles, IProgress<string> progress)
         {
-            string pythonScriptPath = @"C:\Users\jmosz\Desktop\Studia\ZPI Team Project\OMR\main.py";
-            string pythonExecutable = "python";
+            string omrExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "omr/omr.exe");
+
+            if (!File.Exists(omrExePath))
+            {
+                throw new FileNotFoundException($"Could not find the OMR executable at: {omrExePath}");
+            }
 
             return await Task.Run(() =>
             {
                 try
                 {
-                    progress?.Report("Starting Python script...");
-                    Console.WriteLine("Starting Python script...");
+                    progress?.Report("Starting OMR engine...");
+                    Console.WriteLine("Starting OMR engine...");
 
-                    string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
+                    string arguments = string.Join(" ", orderedFiles.Select(f => $"\"{f}\""));
 
                     var processStartInfo = new ProcessStartInfo
                     {
-                        FileName = pythonExecutable,
+                        FileName = omrExePath,
                         Arguments = arguments,
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         CreateNoWindow = true,
-                        WorkingDirectory = Path.GetDirectoryName(pythonScriptPath)
+                        WorkingDirectory = Path.GetDirectoryName(omrExePath)
                     };
 
                     using (var process = new Process())
@@ -51,7 +50,8 @@ namespace MusicNotesEditor.Services.SubProcess
                             if (!string.IsNullOrEmpty(e.Data))
                             {
                                 outputBuilder.AppendLine(e.Data);
-                                // Only show non-JSON messages in UI
+
+                                // filter out internal PyInstaller messages if necessary, though usually they go to stderr
                                 if (!e.Data.Trim().StartsWith("[") && !e.Data.Trim().StartsWith("{"))
                                 {
                                     progress?.Report($"Processing: {e.Data}");
@@ -62,38 +62,39 @@ namespace MusicNotesEditor.Services.SubProcess
 
                         process.ErrorDataReceived += (sender, e) => {
                             if (!string.IsNullOrEmpty(e.Data))
+                            {
                                 errorBuilder.AppendLine(e.Data);
+                                Console.WriteLine($"Debug/Error: {e.Data}");
+                            }
                         };
 
-                        progress?.Report("Executing Python script...");
-                        Console.WriteLine("Executing Python script...");
+                        progress?.Report("Executing OMR core...");
                         process.Start();
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
 
-                        bool completed = process.WaitForExit(30000);
+                        bool completed = process.WaitForExit(60000); // increased to 60s just in case
 
                         if (!completed)
                         {
                             process.Kill();
-                            throw new TimeoutException("Python script execution timed out");
+                            throw new TimeoutException("OMR execution timed out");
                         }
 
                         if (process.ExitCode != 0)
                         {
                             string errorMessage = errorBuilder.ToString();
-                            throw new Exception($"Python script failed: {errorMessage}");
+                            throw new Exception($"OMR process failed (Exit Code {process.ExitCode}): {errorMessage}");
                         }
 
-                        progress?.Report("Python script completed successfully");
-                        Console.WriteLine("Python script completed successfully");
+                        progress?.Report("OMR completed successfully");
                         return outputBuilder.ToString();
                     }
                 }
                 catch (Exception ex)
                 {
                     progress?.Report($"Error: {ex.Message}");
-                    throw new Exception($"Failed to execute Python script: {ex.Message}", ex);
+                    throw new Exception($"Failed to execute OMR: {ex.Message}", ex);
                 }
             });
         }
