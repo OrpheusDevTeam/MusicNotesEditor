@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using MusicNotesEditor.LocalServer;
 using MusicNotesEditor.ViewModels;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,9 +15,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using Newtonsoft.Json;
 
 namespace MusicNotesEditor.Views
 {
@@ -526,48 +527,130 @@ namespace MusicNotesEditor.Views
                 return;
             }
 
+            // Create cancellation token source
+            _processingCancellationTokenSource = new CancellationTokenSource();
+
             // Get the ordered file paths
             string[] orderedFiles = SelectedFiles;
 
             try
             {
+                // Show loading overlay
+                ShowLoadingOverlay("Preparing files...", showCancelButton: true);
+
                 // Disable UI during processing
                 SetProcessingUI(true);
 
-                // Show processing dialog or progress
-                var progress = new Progress<string>();
+                // Create progress reporter for Python processing
+                IProgress<string> progress = new Progress<string>(message =>
+                {
+                    // Parse progress messages from Python script
+                    if (message.Contains("progress:"))
+                    {
+                        UpdateLoadingProgress("Processing files...", message);
+                    }
+                    else if (message.Contains("Converting"))
+                    {
+                        UpdateLoadingProgress(message, "");
+                    }
+                    else if (message.Contains("Merging"))
+                    {
+                        UpdateLoadingProgress(message, "");
+                    }
+                    else if (message.Contains("Finalizing"))
+                    {
+                        UpdateLoadingProgress(message, "");
+                    }
+                });
 
-                // Process files with Python
-                string pythonResult = await App.SubProcessService.ProcessFilesWithPythonAsync(orderedFiles, progress);
+                // Process files with Python (with cancellation support)
+                string pythonResult = await Task.Run(async () =>
+                {
+                    try
+                    {
+                        return await App.SubProcessService.ProcessFilesWithPythonAsync(
+                            orderedFiles,
+                            progress,
+                            _processingCancellationTokenSource.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return "{\"status\":\"cancelled\",\"error\":\"Operation was cancelled\"}";
+                    }
+                });
+
+                // Check if operation was cancelled
+                if (_processingCancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    UpdateLoadingProgress("Operation cancelled", "Cleaning up...");
+                    await Task.Delay(1000); // Brief delay for clean up message
+                    HideLoadingOverlay();
+                    SetProcessingUI(false);
+                    return;
+                }
+
                 Console.WriteLine(pythonResult);
-                // Clean the Python output (remove any extra console output)
+
+                // Clean the Python output
                 string cleanJson = ExtractJsonFromOutput(pythonResult);
                 Console.WriteLine(cleanJson);
+
+                // Update loading status
+                UpdateLoadingProgress("Finalizing output...");
+
                 dynamic results = JsonConvert.DeserializeObject(cleanJson);
                 Console.WriteLine(results);
+
                 // Access properties safely
                 string status = results.status;
                 if (status == "success")
                 {
                     string filePath = results.filepath;
                     Console.WriteLine($"Status: {status}, FilePath: {filePath}");
+
+                    // Update loading status before navigation
+                    UpdateLoadingProgress("Success! Redirecting...");
+                    await Task.Delay(500); // Brief delay for user to see success message
+
                     NavigationService.Navigate(new MusicEditorPage(filePath));
                 }
                 else
                 {
                     string error = results.error;
                     Console.WriteLine($"Status: {status}, Error: {error}");
+
+                    // Show error message
+                    HideLoadingOverlay();
+                    MessageBox.Show($"Error processing files: {error}",
+                        "Processing Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error processing files: {ex.Message}\n\nPlease check that Python is installed and the script path is correct.",
+                HideLoadingOverlay();
+
+                string errorMessage = ex.Message;
+                if (ex is JsonReaderException)
+                {
+                    errorMessage = "Invalid response from Python script. Please check the script configuration.";
+                }
+                else if (ex is TaskCanceledException || ex is OperationCanceledException)
+                {
+                    errorMessage = "Operation was cancelled.";
+                }
+
+                MessageBox.Show($"Error processing files: {errorMessage}\n\nPlease check that Python is installed and the script path is correct.",
                     "Processing Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
-                // Re-enable UI
+                // Hide loading overlay and re-enable UI
+                HideLoadingOverlay();
                 SetProcessingUI(false);
+
+                // Clean up cancellation token
+                _processingCancellationTokenSource?.Dispose();
+                _processingCancellationTokenSource = null;
             }
         }
 
@@ -599,6 +682,7 @@ namespace MusicNotesEditor.Views
 
         private void SetProcessingUI(bool isProcessing)
         {
+            // Disable main UI buttons
             btnProcess.IsEnabled = !isProcessing;
             btnSelectFiles.IsEnabled = !isProcessing;
             btnImportMusicXml.IsEnabled = !isProcessing;
@@ -607,6 +691,10 @@ namespace MusicNotesEditor.Views
             btnRemove.IsEnabled = !isProcessing;
             btnClearAll.IsEnabled = !isProcessing;
 
+            // Disable the cancel button on the main UI during processing
+            btnCancel.IsEnabled = !isProcessing;
+
+            // Update button text
             if (isProcessing)
             {
                 btnProcess.Content = "Processing...";
@@ -757,7 +845,70 @@ namespace MusicNotesEditor.Views
             });
         }
 
+        private CancellationTokenSource _processingCancellationTokenSource;
 
+        private void ShowLoadingOverlay(string message = "Processing Files...", bool showCancelButton = false)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadingText.Text = message;
+                ProgressText.Text = "";
+                btnCancelProcessing.Visibility = showCancelButton ? Visibility.Visible : Visibility.Collapsed;
+
+                // Start fade-in animation
+                LoadingOverlay.Visibility = Visibility.Visible;
+
+                var fadeInAnimation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 0.9, // 90% opacity as requested
+                    Duration = TimeSpan.FromSeconds(0.3),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+
+                LoadingOverlay.BeginAnimation(OpacityProperty, fadeInAnimation);
+            });
+        }
+
+        private void HideLoadingOverlay()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // Start fade-out animation
+                var fadeOutAnimation = new DoubleAnimation
+                {
+                    From = LoadingOverlay.Opacity,
+                    To = 0,
+                    Duration = TimeSpan.FromSeconds(0.3),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+                };
+
+                fadeOutAnimation.Completed += (s, e) =>
+                {
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                };
+
+                LoadingOverlay.BeginAnimation(OpacityProperty, fadeOutAnimation);
+            });
+        }
+
+        private void UpdateLoadingProgress(string status, string progress = "")
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LoadingText.Text = status;
+                if (!string.IsNullOrEmpty(progress))
+                {
+                    ProgressText.Text = progress;
+                }
+            });
+        }
+
+        private void BtnCancelProcessing_Click(object sender, RoutedEventArgs e)
+        {
+            _processingCancellationTokenSource?.Cancel();
+            UpdateLoadingProgress("Cancelling...");
+        }
     }
 
     public class FileItem : INotifyPropertyChanged
