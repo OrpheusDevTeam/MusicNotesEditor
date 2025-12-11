@@ -54,55 +54,57 @@
                         Text="Credits">
                     </TextBlock>
 
-                    <StackPanel Grid.Row="1">
-                        <TextBlock FontSize="25" FontWeight="Medium" Margin="20,0,0,0" Foreground="White">
-                            <Run Text="Authors:"/>
-                        </TextBlock>
-                        <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
-                            <Run Text="• "/>
-                            <Run Text="Katarzyna Jaroszyńska"/>
-                        </TextBlock>
-                        <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
-                            <Run Text="• "/>
-                            <Run Text="Jakub Moszyński"/>
-                        </TextBlock>
-                        <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
-                            <Run Text="• "/>
-                            <Run Text="Kacper Pytkiewicz"/>
-                        </TextBlock>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock FontSize="25" FontWeight="Medium" Margin="20,0,0,0" Foreground="White">
+            <Run Text="Authors:"/>
+                            </TextBlock>
+                            <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
+            <Run Text="• "/>
+            <Run Text="Katarzyna Jaroszyńska"/>
+                            </TextBlock>
+                            <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
+            <Run Text="• "/>
+            <Run Text="Jakub Moszyński"/>
+                            </TextBlock>
+                            <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
+            <Run Text="• "/>
+            <Run Text="Kacper Pytkiewicz"/>
+                            </TextBlock>
+                            <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
+            <Run Text="• "/>            
+            <Run Text="Maciej Zawrzykraj"/>
+                            </TextBlock>
+                            <TextBlock FontSize="25" Margin="20,20,0,0" Foreground="White">          
+            <Run FontWeight="Medium" Text="Supervisor: "/>
+            <Run Text="dr Maciej Walczyński"/>
+                            </TextBlock>
+                            <TextBlock FontSize="15" FontWeight="Medium" Margin="20,20,0,0" Foreground="White">          
+            <Run Text="Copyrights: "/>
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White">
+            <Run Text=" "/>
+            <Run Text="© Image Icon by @kreason via Canva.com"/>
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White">
+            <Run Text=" "/>
+            <Run Text="© File Upload Icon by @hajicon via Canva.com"/>
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White">
+            <Run Text=" "/>
+            <Run Text="© Black book icon - outline by @teddyal via Canva.com"/>
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White" TextWrapping="Wrap">
+            <Run Text=" "/>
+            <Run Text="This project was created using resources provided by Wroclaw Centre for Networking and Supercomputing (http://wcss.pl/)."/>
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White" TextWrapping="Wrap">
+            <Run Text=" "/>
+            <Run Text="This project uses Ultralytics YOLO models licensed under AGPL-3.0."/>
+                            </TextBlock>
+                        </StackPanel>
+                    </ScrollViewer>
 
-                        <TextBlock FontSize="20" Margin="20,0,0,0" Foreground="White">
-                            <Run Text="• "/>            
-                            <Run Text="Maciej Zawrzykraj"/>
-                        </TextBlock>
-
-                        <TextBlock FontSize="25" Margin="20,20,0,0" Foreground="White">          
-                            <Run FontWeight="Medium" Text="Supervisor: "/>
-                            <Run Text="dr Maciej Walczyński"/>
-                        </TextBlock>
-
-                        <TextBlock FontSize="15" FontWeight="Medium" Margin="20,20,0,0" Foreground="White">          
-                            <Run Text="Copyrights: "/>
-                        </TextBlock>
-                        <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White">
-                            <Run Text=" "/>
-                            <Run Text="© Image Icon by @kreason via Canva.com"/>
-                        </TextBlock>
-                        <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White">
-                            <Run Text=" "/>
-                            <Run Text="© File Upload Icon by @hajicon via Canva.com"/>
-                        </TextBlock>
-                        <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White">
-                            <Run Text=" "/>
-                            <Run Text="© Black book icon - outline by @teddyal via Canva.com"/>
-                        </TextBlock>
-                        <TextBlock FontSize="12" Margin="20,0,0,0" Foreground="White" TextWrapping="Wrap">
-                            <Run Text=" "/>
-                            <Run Text="This project was created using resources provided by Wroclaw Centre for Networking and Supercomputing (http://wcss.pl/)."/>
-                        </TextBlock>
-
-                    </StackPanel>
-                    
 
                     <Button Grid.Row="2" x:Name="btnReturn" Content="Return" Click="ReturnToMenu"
                         Width="100" Height="35" Margin="0,0,10,0"

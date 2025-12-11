@@ -90,57 +90,6 @@
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Background="Transparent">
-                            <ScrollViewer.Resources>
-                                <!-- Working ScrollBar Style - Vertical Only -->
-                                <Style TargetType="ScrollBar">
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="BorderBrush" Value="Transparent"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="Orientation" Value="Vertical">
-                                            <Setter Property="Width" Value="12"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ScrollBar">
-                                                        <Grid>
-                                                            <Track x:Name="PART_Track" 
-                                                                   IsDirectionReversed="true">
-                                                                <Track.Thumb>
-                                                                    <Thumb Background="#FF6B5B95" 
-                                                                           Opacity="0.7">
-                                                                        <Thumb.Style>
-                                                                            <Style TargetType="Thumb">
-                                                                                <Setter Property="Template">
-                                                                                    <Setter.Value>
-                                                                                        <ControlTemplate TargetType="Thumb">
-                                                                                            <Border CornerRadius="6" 
-                                                                                                    Background="{TemplateBinding Background}"
-                                                                                                    BorderThickness="0"/>
-                                                                                        </ControlTemplate>
-                                                                                    </Setter.Value>
-                                                                                </Setter>
-                                                                                <Style.Triggers>
-                                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                                        <Setter Property="Background" Value="#FF8B7BA5"/>
-                                                                                        <Setter Property="Opacity" Value="1"/>
-                                                                                    </Trigger>
-                                                                                    <Trigger Property="IsDragging" Value="True">
-                                                                                        <Setter Property="Background" Value="#FF9B8BB5"/>
-                                                                                        <Setter Property="Opacity" Value="1"/>
-                                                                                    </Trigger>
-                                                                                </Style.Triggers>
-                                                                            </Style>
-                                                                        </Thumb.Style>
-                                                                    </Thumb>
-                                                                </Track.Thumb>
-                                                            </Track>
-                                                        </Grid>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ScrollViewer.Resources>
 
                             <ListView x:Name="filesListView"
                                       AllowDrop="True"

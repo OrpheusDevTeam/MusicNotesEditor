@@ -252,10 +252,10 @@ namespace MusicNotesEditor.Views
                     Content = new TextBlock
                     {
                         Inlines =
-                {
-                    new Run(accidental.AccidentalName) { FontWeight = FontWeights.Bold },
-                    new Run($"\n{accidental.Description}"),
-                }
+                        {
+                            new Run(accidental.AccidentalName) { FontWeight = FontWeights.Bold },
+                            new Run($"\n{accidental.Description}"),
+                        }
                     }
                 };
 
@@ -288,6 +288,8 @@ namespace MusicNotesEditor.Views
 
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
+            ScoreAdjustHelper.AdjustWidth(viewModel.Data, viewModel.NoteViewerContentWidth,viewModel.NoteViewerContentHeight, 1 );
+            viewModel.AdjustHeight();
         }
 
 
