@@ -332,18 +332,22 @@
             <!-- Loading Overlay - Initially Hidden -->
             <Grid x:Name="LoadingOverlay" 
       Grid.ColumnSpan="2"
-      Background="#CC000000" 
+      Panel.ZIndex="999"
       Opacity="0"
-      Visibility="Collapsed"
-      Panel.ZIndex="999">
+      Visibility="Collapsed">
 
-                <!-- Blur Effect -->
-                <Grid.Effect>
-                    <BlurEffect Radius="5"/>
-                </Grid.Effect>
+                <!-- Semi-transparent background with blur effect -->
+                <Border x:Name="BlurBackground" 
+            Background="#CC000000" 
+            Opacity="0.9">
+                    <Border.Effect>
+                        <BlurEffect Radius="5"/>
+                    </Border.Effect>
+                </Border>
 
-                <!-- Loading Content -->
-                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- Loading Content (NO blur effect here) -->
+                <Grid HorizontalAlignment="Center" 
+          VerticalAlignment="Center">
                     <Border Background="#FF2A2438" 
                 CornerRadius="15"
                 Padding="30"
@@ -352,10 +356,12 @@
                         <Border.Effect>
                             <DropShadowEffect ShadowDepth="5" 
                                   BlurRadius="15" 
-                                  Opacity="0.5"/>
+                                  Opacity="0.5"
+                                  Color="#FF000000"/>
                         </Border.Effect>
 
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Center" 
+                        VerticalAlignment="Center">
                             <!-- Loading Spinner -->
                             <ProgressBar x:Name="LoadingProgressBar"
                             IsIndeterminate="True"
@@ -379,14 +385,18 @@
                           FontSize="16"
                           FontWeight="SemiBold"
                           HorizontalAlignment="Center"
-                          Margin="0,0,0,10"/>
+                          Margin="0,0,0,10"
+                          TextOptions.TextFormattingMode="Display"
+                          TextOptions.TextRenderingMode="ClearType"/>
 
                             <!-- Optional: Progress Percentage -->
                             <TextBlock x:Name="ProgressText"
                           Text=""
                           Foreground="#FFAAAAAA"
                           FontSize="12"
-                          HorizontalAlignment="Center"/>
+                          HorizontalAlignment="Center"
+                          TextOptions.TextFormattingMode="Display"
+                          TextOptions.TextRenderingMode="ClearType"/>
 
                             <!-- Optional: Cancel Button -->
                             <Button x:Name="btnCancelProcessing"
@@ -399,7 +409,8 @@
                         BorderBrush="#FF6B5B95"
                         BorderThickness="1"
                         Click="BtnCancelProcessing_Click"
-                        Visibility="Collapsed"/>
+                        Visibility="Collapsed"
+                        FontSize="12"/>
                         </StackPanel>
                     </Border>
                 </Grid>
