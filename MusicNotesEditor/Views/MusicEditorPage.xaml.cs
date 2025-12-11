@@ -771,6 +771,7 @@ namespace MusicNotesEditor.Views
 
         private void BackToMenu(object sender, RoutedEventArgs e)
         {
+            viewModel.StopPlayback();
             NavigationService.Navigate(new MainMenuPage());
         }
     }
