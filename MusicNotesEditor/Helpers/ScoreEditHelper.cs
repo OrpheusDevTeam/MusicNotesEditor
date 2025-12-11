@@ -6,6 +6,7 @@ using MusicNotesEditor.Models.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,8 +18,9 @@ namespace MusicNotesEditor.Helpers
 
         private const int TEMP_NOTE_OFFSET = 8;
 
-        public static void InsertNote(Score score, double clickXPos, double clickYPos, double noteViewerContentWidth,
-            RhythmicDuration? currentNote, bool isRest, int accidental, NoteViewer noteViewer, int currentPageIndex)
+        public static void InsertNote(Score score, double clickXPos, double clickYPos, double noteViewerContentWidth, 
+            double noteViewerContentHeight, RhythmicDuration? currentNote, bool isRest, int accidental, 
+            NoteViewer noteViewer, int currentPageIndex)
         {
             // Additional Staff lines gives twice as many additional positions for notes to be in
             var additionalPositions = App.Settings.AdditionalStaffLines.Value * 2;
@@ -59,19 +61,19 @@ namespace MusicNotesEditor.Helpers
                 currentMeasureEndIndex++;
             Console.WriteLine($"REND INDEXING!!!!!!!!!!!!!!!: {currentMeasureEndIndex}");
 
-
+            currentMeasureEndIndex = Math.Min( currentMeasureEndIndex, staffElements.Count-1 );
             // Replace rests with temporary notes
-            for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
-            {
-                var rest = staffElements[i] as CorrectRest;
-                if (rest != null)
-                {
-                    staffElements[i] = new TempNote(rest.Duration);
-                }
-            }
+            //for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
+            //{
+            //    var rest = staffElements[i] as CorrectRest;
+            //    if (rest != null)
+            //    {
+            //        staffElements[i] = new TempNote(rest.Duration);
+            //    }
+            //}
 
             // Put empty print suggestion to force rerendering
-            Rerender(score);
+            //Rerender(score);
 
             int elementOnLeftIndex = -1;
 
@@ -83,11 +85,8 @@ namespace MusicNotesEditor.Helpers
 
                 var elementXPosition = ScoreDataExtractor.HorizontalPosition(element);
 
-                if (element is TempNote)
-                {
-                    elementXPosition += TEMP_NOTE_OFFSET;
-                }
-
+                elementXPosition += TEMP_NOTE_OFFSET;
+                
                 if (elementXPosition <= clickXPos)
                 {
                     Console.WriteLine($"ElementXPOS: {elementXPosition}\tclickXPos: {clickXPos} Result:{elementXPosition <= clickXPos}");
@@ -157,14 +156,14 @@ namespace MusicNotesEditor.Helpers
 
             
             // Replace temporary notes with rests
-            for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
-            {
-                var tempNote = staffElements[i] as TempNote;
-                if (tempNote != null)
-                {
-                    staffElements[i] = new CorrectRest(tempNote.Duration);
-                }
-            }
+            //for (int i = currentMeasureStartIndex; i < currentMeasureEndIndex; i++)
+            //{
+            //    var tempNote = staffElements[i] as TempNote;
+            //    if (tempNote != null)
+            //    {
+            //        staffElements[i] = new CorrectRest(tempNote.Duration);
+            //    }
+            //}
 
             // Stop if chosen note takes more space than measure
             if (newNoteProportion > timeInMetrum || currentTimeInMetrum > timeInMetrum)
@@ -343,7 +342,7 @@ namespace MusicNotesEditor.Helpers
                 }
             }
 
-            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, currentPageIndex);
+            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, noteViewerContentHeight, currentPageIndex);
             
         }
 
@@ -455,5 +454,6 @@ namespace MusicNotesEditor.Helpers
             var lineBreak = new PrintSuggestion() { IsSystemBreak = true };
             staff.Elements.Insert(index, lineBreak);
         }
+
     }
 }

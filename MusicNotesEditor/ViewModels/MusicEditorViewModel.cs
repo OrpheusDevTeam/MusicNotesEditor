@@ -47,6 +47,19 @@ namespace MusicNotesEditor.ViewModels
         public double NoteViewerContentHeight;
         public string XmlPath = "";
         public Lyrics? CurrentLyrics = null;
+        private double _additionalPageHeight = 1.0;
+        public double AdditionalPageHeight
+        {
+            get { return _additionalPageHeight; }
+            set
+            {
+                noteViewer.Height *= value;
+                noteViewer.Height /= _additionalPageHeight;
+                NoteViewerContentHeight *= value;
+                NoteViewerContentHeight /= _additionalPageHeight;
+                _additionalPageHeight = value;
+            }
+        }
 
         public bool IsNoteOrRestSelected => SelectedSymbols.Any(symbol => symbol is NoteOrRest);
         public bool IsClefSelected => SelectedSymbols.Any(symbol => symbol is Clef);
@@ -61,7 +74,11 @@ namespace MusicNotesEditor.ViewModels
         public Score Data
         {
             get { return data; }
-            set { data = value; OnPropertyChanged(() => Data); }
+            set 
+            { 
+                data = value;
+                OnPropertyChanged(() => Data);
+            }
         }
 
         public string ScoreFileName 
@@ -73,7 +90,15 @@ namespace MusicNotesEditor.ViewModels
         public int CurrentPageIndex
         {
             get { return _currentPageIndex; }
-            set { _currentPageIndex = value; OnPropertyChanged(() => CurrentPageIndex); }
+            set {
+                if (value > Data.Pages.Count)
+                    _currentPageIndex = Data.Pages.Count;
+                else if(value < 1)
+                    _currentPageIndex = 1;
+                else
+                    _currentPageIndex = value;
+                OnPropertyChanged(() => CurrentPageIndex); 
+            }
         }
 
         public NoteViewer noteViewer;
@@ -81,7 +106,7 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialData()
         {
-            LoadInitialData(2);
+            LoadInitialData(1);
         }
 
         public void LoadInitialData(int numberOfParts)
@@ -119,7 +144,6 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialTemplate(int numberOfParts)
         {
-            FixBarlineRenderingStrategy();
             if (!string.IsNullOrEmpty(XmlPath))
             {
                 //ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, CurrentPageIndex);
@@ -127,8 +151,7 @@ namespace MusicNotesEditor.ViewModels
                 return;
             };
             ScoreFileName = "Untitled Score";
-
-
+            
             int measuresInLine = Math.Max(
                 App.Settings.DefaultInitialMeasures.Value / numberOfParts,
                 App.Settings.MinimalInitialMeasurePerStaff.Value);
@@ -170,10 +193,6 @@ namespace MusicNotesEditor.ViewModels
                     {
                         staff.Elements[i] = new CorrectRest(rest.Duration);
                     }
-                    //else if (staff.Elements[i] is TimeSignature)
-                    //{
-                    //    staff.Elements.Insert(i + 1, );
-                    //}
                 }
                 ScoreAdjustHelper.FixMeasures(staff);
             }
@@ -206,10 +225,33 @@ namespace MusicNotesEditor.ViewModels
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, CurrentNote, IsRest, CurrentAccidental, noteViewer, CurrentPageIndex);
+            ScoreEditHelper.InsertNote(Data, clickXPos, clickYPos, NoteViewerContentWidth, NoteViewerContentHeight, CurrentNote, IsRest, CurrentAccidental, noteViewer, CurrentPageIndex);
             MeasureHelper.ValidateMeasures(Data, noteViewer);
             stopwatch.Stop();
+            AdjustHeight();
             Console.WriteLine($"Execution Time: {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+
+        public void AdjustHeight()
+        {
+            var lastBarline = (Barline) Data.Staves.Last().Elements.Last();
+            if (lastBarline == null)
+                return;
+            var lastBarlineYPosition = lastBarline.ActualRenderedBounds.SE.Y;
+            Console.WriteLine($"ADJUSTING HEIGHT: {lastBarlineYPosition} while noteViewer {noteViewer.Height}");
+            if (lastBarlineYPosition <= 0)
+                return;
+
+            AdditionalPageHeight = 1;
+
+            while (lastBarlineYPosition > NoteViewerContentHeight)
+            {
+                Console.WriteLine($"Increasing Height");
+                AdditionalPageHeight += 0.15;
+            }
+
+
         }
 
 
@@ -318,7 +360,7 @@ namespace MusicNotesEditor.ViewModels
 
             ScoreEditHelper.Rerender(Data);
 
-            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, CurrentPageIndex);
+            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex);
             SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
             MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
@@ -336,6 +378,7 @@ namespace MusicNotesEditor.ViewModels
                     Console.WriteLine($"NOTE AFTER CHANGE: {note}");
                 }
             }
+            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex);
             ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
         }
 
@@ -368,53 +411,16 @@ namespace MusicNotesEditor.ViewModels
         public void AddNewMeasure()
         {
             if(SelectedSymbols.Count == 0)
-                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, CurrentPageIndex);
+                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex);
             else if (SelectedSymbols.Count == 1)
-                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, CurrentPageIndex, SelectedSymbols[0]);
+                MeasureHelper.AddMeasure(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex, SelectedSymbols[0]);
 
+            AdjustHeight();
             SelectionHelper.ColorSelectedElements(noteViewer, SelectedSymbols);
             ScoreEditHelper.Rerender(Data);
             MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
 
-
-        public void FixBarlineRenderingStrategy()
-        {
-            PropertyInfo rendererProperty = noteViewer.GetType().GetProperty("Renderer",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            object renderer = rendererProperty.GetValue(noteViewer);
-
-            PropertyInfo strategiesProperty = renderer.GetType().GetProperty("Strategies",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var strategies = strategiesProperty.GetValue(renderer) as MusicalSymbolRenderStrategyBase[];
-
-            var oldBarlineStrategy = strategies[0] as BarlineRenderStrategy;
-
-            FieldInfo measurementServiceField = oldBarlineStrategy.GetType().GetField("measurementService",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var measurementService = measurementServiceField.GetValue(oldBarlineStrategy) as IMeasurementService;
-
-            FieldInfo alterationServiceField = oldBarlineStrategy.GetType().GetField("alterationService",
-    BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var alterationService = alterationServiceField.GetValue(oldBarlineStrategy) as IAlterationService;
-
-            FieldInfo scoreServiceField = oldBarlineStrategy.GetType().GetField("scoreService",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            var scoreService = scoreServiceField.GetValue(oldBarlineStrategy) as IScoreService;
-
-            var replacement = new CorrectBarlineRenderStrategy(measurementService, alterationService, scoreService);
-
-            // Create a new array of the same type
-            strategies[0] = replacement;
-
-    //        strategiesProperty.SetValue(renderer, newArray, BindingFlags.NonPublic | BindingFlags.SetProperty | BindingFlags.Instance,
-    //null, null, null);
-        }
 
         public void DeleteLastMeasure()
         {
@@ -422,10 +428,11 @@ namespace MusicNotesEditor.ViewModels
                 return;
 
             if (SelectedSymbols.Count == 0)
-                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, CurrentPageIndex);
+                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex);
             else if (SelectedSymbols.Count == 1)
-                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, CurrentPageIndex, SelectedSymbols[0]);
+                MeasureHelper.DeleteMeasure(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex, SelectedSymbols[0]);
 
+            AdjustHeight();
             UnSelectElements();
             MeasureHelper.ValidateMeasures(Data, noteViewer);
         }
@@ -509,6 +516,8 @@ namespace MusicNotesEditor.ViewModels
             CurrentLyrics.Note.Lyrics.Clear();
             CurrentLyrics.Note.Lyrics.Add(newLyrics);
             CurrentLyrics = newLyrics;
+            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex);
+            AdjustHeight();
             ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
             SelectionHelper.ColorSelectedElement(noteViewer, CurrentLyrics);
         }
@@ -535,6 +544,8 @@ namespace MusicNotesEditor.ViewModels
             CurrentLyrics.Note.Lyrics.Clear();
             CurrentLyrics.Note.Lyrics.Add(newLyrics);
             CurrentLyrics = newLyrics;
+            ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, NoteViewerContentHeight, CurrentPageIndex);
+            AdjustHeight();
             ScoreEditHelper.Rerender(Data, noteViewer, SelectedSymbols);
             SelectionHelper.ColorSelectedElement(noteViewer, CurrentLyrics);
         }

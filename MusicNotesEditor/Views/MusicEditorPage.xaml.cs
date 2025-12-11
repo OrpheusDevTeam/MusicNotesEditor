@@ -39,78 +39,80 @@ namespace MusicNotesEditor.Views
 
         TextBlock noteIndicator;
         List<TextBlock> staffLineIndicators;
+        Stopwatch stopwatch = new Stopwatch();
+
         public MusicEditorPage(string filepath = "")
         {
-            NavigationCommands.BrowseBack.InputGestures.Clear();
-            NavigationCommands.BrowseForward.InputGestures.Clear();
-
-            InitializeComponent();
-            GenerateNoteButtons();
-
-            DataContext = viewModel;
-            viewModel.XmlPath = filepath;
-            viewModel.noteViewer = noteViewer;
-
+            stopwatch.Start();
             try
             {
+                NavigationCommands.BrowseBack.InputGestures.Clear();
+                NavigationCommands.BrowseForward.InputGestures.Clear();
+
+                InitializeComponent();
+                GenerateNoteButtons();
+
+                DataContext = viewModel;
+                viewModel.XmlPath = filepath;
+                viewModel.noteViewer = noteViewer;
+
                 if (string.IsNullOrEmpty(filepath))
                 {
                     viewModel.LoadInitialData();
                 }
-
                 else
-                    viewModel.LoadData(filepath);
-            }
-            catch (Exception ex)
-            {
-                // Should navigate back to main menu with displaying error, should catch different exceptions
-                Console.WriteLine("Loading Error:");
-                Console.WriteLine(ex);
-                viewModel.LoadInitialData();
-            }
-
-            /* 
-             * Part of initializing data has to be moved to first render
-             * as it needs rendering bounds  of barlines to put system breaks correctly
-            */
-            CompositionTarget.Rendering += InitializeDataOnFirstRender;
-
-            mainGrid.SizeChanged += MainGrid_SizeChanged;
-            noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
-            noteViewer.MouseLeftButtonDown += AddNote;
-
-            mainCanvas = (Canvas)noteViewer.FindName("MainCanvas");
-
-            noteViewer.MouseEnter += Canvas_MouseEnter;
-            noteViewer.MouseLeave += Canvas_MouseLeave;
-            noteViewer.MouseMove += Canvas_MouseMove;
-            noteViewer.MouseMove += ElementDragging;
-
-            noteViewer.MouseLeftButtonDown += Canvas_Click;
-            noteViewer.MouseLeftButtonUp += Canvas_Release;
-
-            noteIndicator = new TextBlock
-            {
-                FontSize = 26,
-                Foreground = Brushes.Blue,
-                FontFamily = (FontFamily)FindResource("Polihymnia")
-            };
-
-            int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
-            staffLineIndicators = new List<TextBlock>(additionalStaffLines);
-
-            for (int i = 0; i < additionalStaffLines; i++)
-            {
-                var staffLineIndicatorTemplate = new TextBlock
                 {
-                    Text = "\u00E0",
+                    viewModel.LoadData(filepath);
+                }
+
+                CompositionTarget.Rendering += InitializeDataOnFirstRender;
+
+                mainGrid.SizeChanged += MainGrid_SizeChanged;
+                noteViewer.MouseLeftButtonDown += NoteViewer_Debug;
+                noteViewer.MouseLeftButtonDown += AddNote;
+
+                mainCanvas = (Canvas)noteViewer.FindName("MainCanvas");
+
+                noteViewer.MouseEnter += Canvas_MouseEnter;
+                noteViewer.MouseLeave += Canvas_MouseLeave;
+                noteViewer.MouseMove += Canvas_MouseMove;
+                noteViewer.MouseMove += ElementDragging;
+
+                noteViewer.MouseLeftButtonDown += Canvas_Click;
+                noteViewer.MouseLeftButtonUp += Canvas_Release;
+
+                noteIndicator = new TextBlock
+                {
                     FontSize = 26,
                     Foreground = Brushes.Blue,
                     FontFamily = (FontFamily)FindResource("Polihymnia")
                 };
-                staffLineIndicators.Add(staffLineIndicatorTemplate);
-            }
 
+                int additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
+                staffLineIndicators = new List<TextBlock>(additionalStaffLines);
+
+                for (int i = 0; i < additionalStaffLines; i++)
+                {
+                    var staffLineIndicatorTemplate = new TextBlock
+                    {
+                        Text = "\u00E0",
+                        FontSize = 26,
+                        Foreground = Brushes.Blue,
+                        FontFamily = (FontFamily)FindResource("Polihymnia")
+                    };
+                    staffLineIndicators.Add(staffLineIndicatorTemplate);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Loading Error:");
+                Console.WriteLine(ex);
+                viewModel.LoadInitialData();
+            }
+            finally
+            {
+               
+            }
         }
 
         private void InitializeDataOnFirstRender(object? sender, EventArgs e)
@@ -119,11 +121,14 @@ namespace MusicNotesEditor.Views
 
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
-            viewModel.LoadInitialTemplate(2);
-            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth(), viewModel.CurrentPageIndex);
-            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth(), viewModel.CurrentPageIndex);
+            viewModel.LoadInitialTemplate();
+            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth(), NoteViewerContentHeight(), viewModel.CurrentPageIndex);
+            ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth(), NoteViewerContentHeight(), viewModel.CurrentPageIndex);
 
             MeasureHelper.ValidateMeasures(viewModel.Data, noteViewer);
+            stopwatch.Stop();
+            var totalTime = stopwatch.ElapsedMilliseconds;
+            Console.WriteLine($"\n??????????????\n^^^^^^^^^^^^^^^^\nMusicEditorPage constructor completed in {totalTime}ms\n??????????????\n^^^^^^^^^^^^^^^^\n");
         }
 
 
@@ -276,11 +281,12 @@ namespace MusicNotesEditor.Views
 
             noteViewer.Width = containerWidth * noteViewerWidthPercentage;
 
-            noteViewer.Height = noteViewer.Width * 1.414;
+            noteViewer.Height = noteViewer.Width * 1.414 * viewModel.AdditionalPageHeight;
 
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
         }
+
 
         public void PlayButton_Click(object sender, RoutedEventArgs e)
         {
@@ -522,6 +528,10 @@ namespace MusicNotesEditor.Views
             {
                 noteIndicator.Text = noteIndicator.Text.ToUpper();
             }
+            Canvas_MouseLeave(null, null);
+            Canvas_MouseEnter(null, null);
+            Point positionRelativeToControl = Mouse.GetPosition(this);
+            SnapToStaffLine(positionRelativeToControl);
         }
 
 
@@ -602,10 +612,16 @@ namespace MusicNotesEditor.Views
         {
             if (viewModel.CurrentNote == null)
                 return;
+            var pos = e.GetPosition(mainCanvas);
+            SnapToStaffLine(pos);
+        }
+
+        private void SnapToStaffLine(Point pos)
+        {
+
             // Update letter position to follow the mouse
-            var pos = e.GetPosition(mainCanvas); 
             Canvas.SetLeft(noteIndicator, pos.X - noteIndicator.ActualWidth / 2);
-            foreach(var staffLineIndicator in staffLineIndicators)
+            foreach (var staffLineIndicator in staffLineIndicators)
             {
                 Canvas.SetLeft(staffLineIndicator, pos.X - staffLineIndicator.ActualWidth / 2);
             }
@@ -614,8 +630,8 @@ namespace MusicNotesEditor.Views
                 viewModel.Data,
                 pos.Y,
                 out List<double> closestLinePositions);
-            Console.WriteLine($"LINES LINES LINES: {string.Join("\n\t", closestLinePositions)}");
-            if(lineIndex == -1 || viewModel.CurrentNote == null)
+
+            if (lineIndex == -1 || viewModel.CurrentNote == null)
             {
                 Canvas.SetTop(noteIndicator, pos.Y - noteIndicator.ActualHeight / 2);
                 foreach (var staffLineIndicator in staffLineIndicators)
@@ -627,20 +643,20 @@ namespace MusicNotesEditor.Views
 
             var closest = closestLinePositions[lineIndex];
             double distanceToClosestLine = Math.Abs(closest - pos.Y);
-            
+
             Canvas.SetTop(noteIndicator, closest - noteIndicator.ActualHeight / 2);
             var additionalStaffLines = App.Settings.AdditionalStaffLines.Value;
 
             for (int i = 0; i < additionalStaffLines; i++)
             {
                 staffLineIndicators[i].Visibility = Visibility.Visible;
-                if(lineIndex / 2 < additionalStaffLines)
+                if (lineIndex / 2 < additionalStaffLines)
                 {
                     Canvas.SetTop(
                         staffLineIndicators[i],
-                        closestLinePositions[i*2] - staffLineIndicators[i].ActualHeight / 3.75);
+                        closestLinePositions[i * 2] - staffLineIndicators[i].ActualHeight / 3.75);
                 }
-                else if ( (closestLinePositions.Count - lineIndex) / 2 <= additionalStaffLines)
+                else if ((closestLinePositions.Count - lineIndex) / 2 <= additionalStaffLines)
                 {
                     var additionalLineIndex = closestLinePositions.Count - (i + 1) * 2;
                     Canvas.SetTop(
@@ -652,15 +668,13 @@ namespace MusicNotesEditor.Views
                     staffLineIndicators[i].Visibility = Visibility.Collapsed;
                 }
             }
-            
+
         }
 
 
         private void NoteViewer_Loaded(object sender, RoutedEventArgs e)
         {
-
             ToggleAccidental(0);
-
         }
 
         // Function for printing debug information about note viewer
@@ -681,7 +695,7 @@ namespace MusicNotesEditor.Views
             var systems = viewModel.Data.Systems;
             var parts = viewModel.Data.Parts;
             var pages = viewModel.Data.Pages;
-
+            
             Console.WriteLine($"Staves: {staves.Count}");
             Console.WriteLine($"Systems: {systems.Count}");
             Console.WriteLine($"Parts: {parts.Count}");
@@ -733,10 +747,10 @@ namespace MusicNotesEditor.Views
                 
                 for (int j = 0; j < elements.Count; j++)
                 {
-                    Console.WriteLine($"\tStave: {i + 1} Measure: {elements[j].Measure} Element: {j + 1}. {elements[j]} " +
-                            $"Location: {elements[j].ActualRenderedBounds}");
-                    if (elements[j] is Note note)
-                        Console.WriteLine($"Lyrics: {string.Join(" | ", note.Lyrics)}");
+                    Console.WriteLine($"\tStave: {i + 1} Measure: Element: {j + 1}. {elements[j]} " +
+                            $"Page: {elements[j].Measure.System.Page} and measure: {elements[j].Measure} and bounds: {elements[j].ActualRenderedBounds}");
+                    //if (elements[j] is Note note)
+                    //    Console.WriteLine($"Lyrics: {string.Join(" | ", note.Lyrics)}");
 
                 }
             }

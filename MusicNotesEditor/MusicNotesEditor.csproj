@@ -10,7 +10,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Manufaktura.Controls" Version="1.4.0" />
+	  <Reference Include="Manufaktura.Controls">
+		  <HintPath>Libs\Manufaktura.Controls.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Manufaktura.Music">
+		  <HintPath>Libs\Manufaktura.Music.dll</HintPath>
+	  </Reference>
     <PackageReference Include="Manufaktura.Controls.Desktop" Version="1.0.0" />
     <PackageReference Include="Manufaktura.Controls.WPF" Version="1.4.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />

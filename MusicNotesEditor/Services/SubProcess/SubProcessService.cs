@@ -101,6 +101,7 @@ namespace MusicNotesEditor.Services.SubProcess
 
         public async Task<string> ExecuteJavaScriptScriptAsync(string scriptName, string arguments, IProgress<string> progress)
         {
+            var stopwatch = Stopwatch.StartNew();
             return await Task.Run(() =>
             {
                 try

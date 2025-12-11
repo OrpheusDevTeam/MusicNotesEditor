@@ -133,7 +133,7 @@
                FontSize="16"/>
 
             <StackPanel Grid.Column="2"
-                        Orientation="Horizontal"
+            Orientation="Horizontal"
                         VerticalAlignment="Center" 
                         >
                 <Button Name="playButton" Content="  Play  " Click="PlayButton_Click" Margin="4" MinHeight="24"/>
@@ -156,7 +156,7 @@
                 IsSelectable="False"
                 RenderingMode="SinglePage"
                 CurrentPage="{Binding CurrentPageIndex}"
-                ZoomFactor="1.25"
+                ZoomFactor="1.5"
                 ScoreSource="{Binding Data}" 
                 Loaded="NoteViewer_Loaded"
             />

@@ -1,4 +1,5 @@
 ﻿using Manufaktura.Controls.Model;
+using Manufaktura.Controls.Rendering;
 using Manufaktura.Controls.WPF;
 using Manufaktura.Music.Model;
 using MusicNotesEditor.Models.Framework;
@@ -14,7 +15,7 @@ namespace MusicNotesEditor.Helpers
     public class MeasureHelper
     {
 
-        public static void AddMeasure(Score score, double noteViewerContentWidth, int currentPageIndex, MusicalSymbol? selectedSymbol = null)
+        public static void AddMeasure(Score score, double noteViewerContentWidth, double noteViewerContentHeight, int currentPageIndex, MusicalSymbol? selectedSymbol = null)
         {
 
             foreach (var staff in score.Staves)
@@ -49,11 +50,11 @@ namespace MusicNotesEditor.Helpers
                 
             }
             
-            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, currentPageIndex);
+            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, noteViewerContentHeight, currentPageIndex);
         }
 
 
-        public static void DeleteMeasure(Score score, double noteViewerContentWidth, int currectPageIndex, MusicalSymbol? selectedSymbol = null)
+        public static void DeleteMeasure(Score score, double noteViewerContentWidth, double noteViewerContentHeight, int currectPageIndex, MusicalSymbol? selectedSymbol = null)
         {
 
             foreach (var staff in score.Staves)
@@ -89,7 +90,7 @@ namespace MusicNotesEditor.Helpers
 
             }
 
-            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, currectPageIndex);
+            ScoreAdjustHelper.AdjustWidth(score, noteViewerContentWidth, noteViewerContentHeight, currectPageIndex);
         }
 
 
