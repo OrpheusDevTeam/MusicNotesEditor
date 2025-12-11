@@ -111,7 +111,7 @@ namespace MusicNotesEditor.Views
             }
             finally
             {
-               
+
             }
         }
 
@@ -164,8 +164,11 @@ namespace MusicNotesEditor.Views
                 };
 
                 // Create a command for this note
+                var keyboardNoteCommand = new RelayCommand(
+                    execute: () => ToggleNote(note.Duration, true)
+                );
                 var noteCommand = new RelayCommand(
-                    execute: () => ToggleNote(note.Duration)
+                    execute: () => ToggleNote(note.Duration, false)
                 );
 
                 var btn = new ToggleButton
@@ -181,7 +184,7 @@ namespace MusicNotesEditor.Views
                 if (note.Shortcut != null)
                 {
                     var inputBinding = new InputBinding(
-                        noteCommand,
+                        keyboardNoteCommand,
                         note.Shortcut
                     );
 
@@ -504,7 +507,7 @@ namespace MusicNotesEditor.Views
         }
 
 
-        private void ToggleNote(RhythmicDuration note)
+        private void ToggleNote(RhythmicDuration note, bool inputFromKeyboard = false)
         {
             viewModel.UnSelectElements();
             var notesButtons = NoteToolbar.Items;
@@ -532,10 +535,12 @@ namespace MusicNotesEditor.Views
             {
                 noteIndicator.Text = noteIndicator.Text.ToUpper();
             }
-            Canvas_MouseLeave(null, null);
-            Canvas_MouseEnter(null, null);
-            Point positionRelativeToControl = Mouse.GetPosition(this);
-            SnapToStaffLine(positionRelativeToControl);
+            if(inputFromKeyboard)
+            {
+                Canvas_MouseLeave(null, null);
+                Canvas_MouseEnter(null, null);
+                SnapToStaffLine(new Point(-1000,-1000));
+            }
         }
 
 
@@ -589,10 +594,12 @@ namespace MusicNotesEditor.Views
         private void Canvas_MouseEnter(object sender, MouseEventArgs e)
         {
             noteIndicator.Visibility = Visibility.Visible;
-            mainCanvas.Children.Add(noteIndicator);
+            if(noteIndicator.Parent == null)
+                mainCanvas.Children.Add(noteIndicator);
             foreach(var staffLineIndicator in staffLineIndicators)
             {
-                mainCanvas.Children.Add(staffLineIndicator);
+                if(staffLineIndicator.Parent == null)
+                    mainCanvas.Children.Add(staffLineIndicator);
             }
             
             noteIndicator.Text = NoteDurationData.SmuflCharFromDuration(viewModel.CurrentNote);
