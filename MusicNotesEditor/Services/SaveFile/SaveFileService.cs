@@ -4,6 +4,7 @@ using MusicNotesEditor.Helpers;
 using MusicNotesEditor.Models.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,7 @@ namespace MusicNotesEditor.Services.SaveFile
 
         public bool SaveMusicXMLInternal(Score score, string filePath)
         {
+            var stopwatch = Stopwatch.StartNew();
             if (filePath == null) return false;
 
             PrepareStaffForSerialization(score);
@@ -43,6 +45,9 @@ namespace MusicNotesEditor.Services.SaveFile
             finally
             {
                 RestoreStaffAfterSerialization(score);
+                stopwatch.Stop();
+                var totalTime = stopwatch.ElapsedMilliseconds;
+                Console.WriteLine($"\n??????????????\n^^^^^^^^^^^^^^^^\nMusicEditorPage constructor completed in {totalTime}ms\n??????????????\n^^^^^^^^^^^^^^^^\n");
             }
         }
 

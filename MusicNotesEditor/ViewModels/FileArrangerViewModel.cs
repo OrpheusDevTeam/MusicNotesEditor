@@ -13,7 +13,23 @@ using MusicNotesEditor.Views;
 
 namespace MusicNotesEditor.ViewModels
 {
+
     class FileArrangerViewModel : ViewModel
     {
+
+        private int _numberOfParts = 1;
+
+        public int NumberOfParts
+        {
+            get { return _numberOfParts; }
+            set
+            {
+                if (value <= 6 && value >= 1 )
+                    _numberOfParts = value;
+                OnPropertyChanged(() => NumberOfParts);
+            }
+        }
+
+
     }
 }
