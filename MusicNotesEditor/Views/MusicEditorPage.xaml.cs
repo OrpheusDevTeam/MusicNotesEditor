@@ -120,6 +120,8 @@ namespace MusicNotesEditor.Views
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
             viewModel.LoadInitialTemplate();
             ScoreAdjustHelper.AdjustWidth(viewModel.Data, NoteViewerContentWidth());
+
+            MeasureHelper.ValidateMeasures(viewModel.Data, noteViewer);
         }
 
 
