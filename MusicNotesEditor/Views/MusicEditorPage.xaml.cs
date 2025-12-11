@@ -290,8 +290,12 @@ namespace MusicNotesEditor.Views
 
         public void PlayButton_Click(object sender, RoutedEventArgs e)
         {
-            //App.PlaybackService.Play("Assets\\testmusic.wav");
-            viewModel.PlayScore();
+            viewModel.TogglePlayback();
+        }
+
+        public void PauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.TogglePause();
         }
 
 

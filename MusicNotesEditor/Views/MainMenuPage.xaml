@@ -204,7 +204,7 @@
                                 BorderBrush="#FF292834" 
                                 BorderThickness="2" 
                                 CornerRadius="8">
-                            <Button Margin="0" Name="settingsButton" Click="OpenSettings" Background="#FF1b182b" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                            <Button Margin="0" Name="creditsButton" Click="OpenCredits" Background="#FF1b182b" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                                 <Grid Margin="15">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="70"/>
@@ -218,13 +218,13 @@
                                     </Grid.RowDefinitions>
 
                                     <Image Grid.Column="0" Grid.RowSpan="2" 
-                                           Source="/Assets/settings.png" 
+                                           Source="/Assets/credits.png" 
                                            Width="60"
                                            Height="60"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Left"/>
                                     <TextBlock Grid.Column="1" Grid.Row="0" 
-                                               Text="Settings" 
+                                               Text="Credits" 
                                                Foreground="White" 
                                                FontSize="16"
                                                FontWeight="Bold" 
@@ -232,7 +232,7 @@
                                                HorizontalAlignment="Left"
                                                Margin="5,0,0,2"/>
                                     <TextBlock Grid.Column="1" Grid.Row="1" 
-                                               Text="Configure application" 
+                                               Text="What made it possible" 
                                                Foreground="LightGray" 
                                                FontSize="12"
                                                VerticalAlignment="Top" 

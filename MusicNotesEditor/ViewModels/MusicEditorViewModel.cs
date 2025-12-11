@@ -1,5 +1,6 @@
 ﻿using Manufaktura.Controls.Audio;
 using Manufaktura.Controls.Desktop.Audio;
+using Manufaktura.Controls.Desktop.Audio.Midi;
 using Manufaktura.Controls.Model;
 using Manufaktura.Controls.Model.Collections;
 using Manufaktura.Controls.Model.Events;
@@ -19,6 +20,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
@@ -33,7 +35,7 @@ namespace MusicNotesEditor.ViewModels
         private const int MAX_NUMBER_OF_STAVES = 5;
         private const string LYRICS_PLACEHOLDER = " |";
 
-        private readonly List<Type> selectableSymbols = new List<Type>() { 
+        private readonly List<Type> selectableSymbols = new List<Type>() {
             typeof(NoteOrRest),
             typeof(Clef),
             typeof(TimeSignature),
@@ -67,8 +69,54 @@ namespace MusicNotesEditor.ViewModels
         public bool IsNothingSelected => !SelectedSymbols.Any();
         public bool IsRest => CurrentAccidental == 2;
 
+        // Playback properties
+        private AsyncMidiPlayer _player;
+        private PlaybackState _playbackState = PlaybackState.Stopped;
+
+        public PlaybackState CurrentPlaybackState
+        {
+            get => _playbackState;
+            set
+            {
+                if (_playbackState != value)
+                {
+                    _playbackState = value;
+                    OnPropertyChanged(nameof(CurrentPlaybackState));
+                    OnPropertyChanged(nameof(PlayButtonText));
+                    OnPropertyChanged(nameof(PauseButtonText));
+                    OnPropertyChanged(nameof(IsPlaybackPlaying));
+                    OnPropertyChanged(nameof(IsPlaybackPaused));
+                    OnPropertyChanged(nameof(CanPause));
+                }
+            }
+        }
+
+        public string PlayButtonText
+        {
+            get
+            {
+                return CurrentPlaybackState switch
+                {
+                    PlaybackState.Playing => "Stop",
+                    PlaybackState.Paused => "Stop", // Changed from "Play" to "Stop"
+                    _ => "Play"
+                };
+            }
+        }
+        public string PauseButtonText => CurrentPlaybackState == PlaybackState.Paused ? "Resume" : "Pause";
+        public bool IsPlaybackPlaying => CurrentPlaybackState == PlaybackState.Playing;
+        public bool IsPlaybackPaused => CurrentPlaybackState == PlaybackState.Paused;
+        public bool CanPause => CurrentPlaybackState == PlaybackState.Playing ||
+                               CurrentPlaybackState == PlaybackState.Paused;
+
+        public enum PlaybackState
+        {
+            Stopped,
+            Playing,
+            Paused
+        }
+
         private string _scoreFileName;
-        private ScorePlayer? player = null;
         private Score data;
         private int _currentPageIndex = 1;
         public Score Data
@@ -81,8 +129,8 @@ namespace MusicNotesEditor.ViewModels
             }
         }
 
-        public string ScoreFileName 
-        {   
+        public string ScoreFileName
+        {
             get { return _scoreFileName; }
             set { _scoreFileName = value; OnPropertyChanged(() => ScoreFileName); }
         }
@@ -102,7 +150,7 @@ namespace MusicNotesEditor.ViewModels
         }
 
         public NoteViewer noteViewer;
-        
+
 
         public void LoadInitialData()
         {
@@ -111,7 +159,7 @@ namespace MusicNotesEditor.ViewModels
 
         public void LoadInitialData(int numberOfParts)
         {
-            if(numberOfParts < 1)
+            if (numberOfParts < 1)
             {
                 throw new InvalidOperationException("Can't create new score with less than 1 staff.");
             }
@@ -130,10 +178,10 @@ namespace MusicNotesEditor.ViewModels
                 score.Staves[i].MeasureAddingRule = Staff.MeasureAddingRuleEnum.AddMeasuresManually;
                 score.Staves[i].AddTimeSignature(TimeSignatureType.Numbers, 4, 4);
                 score.Staves[i].AddBarline(BarlineStyle.None);
-                var part = new Part(score.Staves[i]) { PartId = $"P{i+1}" };
+                var part = new Part(score.Staves[i]) { PartId = $"P{i + 1}" };
                 score.Parts.Add(part);
             }
-        
+
             Data = score;
         }
 
@@ -149,7 +197,8 @@ namespace MusicNotesEditor.ViewModels
                 //ScoreAdjustHelper.AdjustWidth(Data, NoteViewerContentWidth, CurrentPageIndex);
                 ScoreFileName = Path.GetFileName(XmlPath);
                 return;
-            };
+            }
+            ;
             ScoreFileName = "Untitled Score";
             
             int measuresInLine = Math.Max(
@@ -162,7 +211,7 @@ namespace MusicNotesEditor.ViewModels
                 {
                     Console.WriteLine($"CREATING MEASURES: {j}");
                     Data.Staves[i].Add(new CorrectRest(RhythmicDuration.Whole));
-                    Data.Staves[i].AddBarline(BarlineStyle.Regular);                    
+                    Data.Staves[i].AddBarline(BarlineStyle.Regular);
                 }
 
                 RemoveLastN(Data.Staves[i].Elements, 1);
@@ -199,26 +248,105 @@ namespace MusicNotesEditor.ViewModels
             Data = score;
         }
 
-        public void PlayScore()
+        public async void TogglePlayback()
         {
-
-            //player.Tempo = Tempo.Andante;
-            if(player != null)
-                Console.WriteLine($"STATING IN MUSIC BEFORE {player.State}");
-            if (player == null)
+            try
             {
-                player = new MidiTaskScorePlayer(Data);
-                Console.WriteLine(string.Join(", ", MidiTaskScorePlayer.AvailableDevices));
-                player.PlayCueNotes = true;
-                player.Play();
+                if (_player != null && (_player.IsPlaying || _player.IsPaused))
+                {
+                    // Stop current playback (whether playing or paused)
+                    await StopPlaybackInternal();
+                    CurrentPlaybackState = PlaybackState.Stopped;
+                }
+                else
+                {
+                    // Start new playback
+                    await StartPlayback();
+                }
             }
-            Console.WriteLine($"STATING IN MUSIC {player.State}");
-            Console.WriteLine($"TEMPOING IN MUSIC {player.Tempo.BeatsPerMinute}");
-            Console.WriteLine($"STATING IN MUSIC {player.PlayCueNotes}");
-            Console.WriteLine($"CURRENT SYMBOL IN MUSIC {player.CurrentElement}");
-            Console.WriteLine($"CURRENT POSITION IN MUSIC {player.CurrentPosition.PositionX}");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Playback error: {ex.Message}");
+                CurrentPlaybackState = PlaybackState.Stopped;
+                CleanupPlayer();
+            }
         }
 
+        public async void TogglePause()
+        {
+            if (_player == null) return;
+
+            try
+            {
+                if (_player.IsPaused)
+                {
+                    _player.Resume();
+                    CurrentPlaybackState = PlaybackState.Playing;
+                }
+                else if (_player.IsPlaying)
+                {
+                    _player.Pause();
+                    CurrentPlaybackState = PlaybackState.Paused;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Pause/Resume error: {ex.Message}");
+            }
+        }
+
+        private async Task StartPlayback()
+        {
+            // Clean up any existing player
+            CleanupPlayer();
+
+            // Create new player
+            _player = new AsyncMidiPlayer();
+
+            // Subscribe to completion event
+            _player.PlaybackCompleted += OnPlaybackCompleted;
+
+            // Start playback
+            await _player.PlayScoreAsync(Data);
+            CurrentPlaybackState = PlaybackState.Playing;
+        }
+
+        private void OnPlaybackCompleted(object sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                // When playback finishes naturally
+                CurrentPlaybackState = PlaybackState.Stopped;
+                CleanupPlayer();
+            });
+        }
+
+        private async Task StopPlaybackInternal()
+        {
+            if (_player != null)
+            {
+                _player.PlaybackCompleted -= OnPlaybackCompleted;
+                await _player.StopAsync();
+                _player.Dispose();
+                _player = null;
+            }
+        }
+
+        private void CleanupPlayer()
+        {
+            if (_player != null)
+            {
+                _player.PlaybackCompleted -= OnPlaybackCompleted;
+                _player.Dispose();
+                _player = null;
+            }
+        }
+
+        public async void StopPlayback()
+        {
+            await StopPlaybackInternal();
+            CurrentPlaybackState = PlaybackState.Stopped;
+        }
 
         public void AddNote(double clickXPos, double clickYPos)
         {
@@ -284,25 +412,25 @@ namespace MusicNotesEditor.ViewModels
         {
             Console.WriteLine($"SELECTING: {musicalSymbol}");
 
-            if (CurrentNote != null || musicalSymbol == null || !IsSymbolSelectable(musicalSymbol)) 
+            if (CurrentNote != null || musicalSymbol == null || !IsSymbolSelectable(musicalSymbol))
                 return;
 
-            if( !IsNoteOrRestSelected )
+            if (!IsNoteOrRestSelected)
             {
                 multiSelect = false;
             }
 
-            if(!multiSelect || !typeof(NoteOrRest).IsAssignableFrom(musicalSymbol.GetType()) )
+            if (!multiSelect || !typeof(NoteOrRest).IsAssignableFrom(musicalSymbol.GetType()))
             {
                 UnSelectElements();
             }
 
-            Console.WriteLine($"SELECTED ELEMENT!!!!!!!!!!!!!!!!!: {musicalSymbol}");     
-            
+            Console.WriteLine($"SELECTED ELEMENT!!!!!!!!!!!!!!!!!: {musicalSymbol}");
+
 
             SelectionHelper.ColorSelectedElement(noteViewer, musicalSymbol);
 
-            if(!SelectedSymbols.Contains(musicalSymbol))
+            if (!SelectedSymbols.Contains(musicalSymbol))
                 SelectedSymbols.Add(musicalSymbol);
             Console.WriteLine($"SELECTED ELEMENTS!!!!!!!!!!!!!!!!!: B: {string.Join(",", SelectedSymbols)}");
             NotifySelectionPropertiesChanged();
@@ -310,7 +438,7 @@ namespace MusicNotesEditor.ViewModels
 
         public void UnSelectElements(Func<MusicalSymbol, bool>? filter = null)
         {
-            if(CurrentLyrics != null)
+            if (CurrentLyrics != null)
             {
                 Console.WriteLine($"UNSELECTING LYRICS---------------: {CurrentLyrics.Text}");
                 if (CurrentLyrics.Text == LYRICS_PLACEHOLDER)
@@ -338,7 +466,7 @@ namespace MusicNotesEditor.ViewModels
                 {
                     SelectedSymbols.Remove(element);
                 }
-                 
+
             }
             NotifySelectionPropertiesChanged();
         }
@@ -371,7 +499,7 @@ namespace MusicNotesEditor.ViewModels
             foreach (var symbol in SelectedSymbols)
             {
                 Console.WriteLine($"FOUND SYMBOL: {symbol}");
-                if(symbol is Note note && accidental != 2)
+                if (symbol is Note note && accidental != 2)
                 {
                     Console.WriteLine($"FOUND NOTE: {note}");
                     note.Pitch = AccidentalsData.AlterPitch(note.Pitch, accidental);
@@ -388,17 +516,17 @@ namespace MusicNotesEditor.ViewModels
             if (!IsNoteOrRestSelected || DraggingStartPosition == null)
                 return;
 
-            var shift = (int)Math.Round(( (DraggingStartPosition ?? 0) - mouseYPosition) / DistanceBetweenLines());
+            var shift = (int)Math.Round(((DraggingStartPosition ?? 0) - mouseYPosition) / DistanceBetweenLines());
             Console.WriteLine($"Dragging Element: {DraggingStartPosition} Mouse: {mouseYPosition} Shift: {shift}");
 
-            if(shift == 0)
+            if (shift == 0)
             {
                 return;
             }
 
             foreach (var symbol in SelectedSymbols)
             {
-                if(symbol is Note note)
+                if (symbol is Note note)
                 {
                     PitchHelper.ShiftPitch(note, shift);
                 }
@@ -440,12 +568,12 @@ namespace MusicNotesEditor.ViewModels
 
         public void StartTypingLyrics(SyllableType syllableType = SyllableType.Single)
         {
-            if(SelectedSymbols.Count != 1)
+            if (SelectedSymbols.Count != 1)
                 return;
 
-            if(CurrentLyrics != null)
+            if (CurrentLyrics != null)
             {
-                if(CurrentLyrics.Text == LYRICS_PLACEHOLDER || string.IsNullOrWhiteSpace(CurrentLyrics.Text))
+                if (CurrentLyrics.Text == LYRICS_PLACEHOLDER || string.IsNullOrWhiteSpace(CurrentLyrics.Text))
                     CurrentLyrics.Note.Lyrics.Clear();
                 UnSelectElements();
                 ScoreEditHelper.Rerender(Data);
@@ -454,7 +582,7 @@ namespace MusicNotesEditor.ViewModels
 
             if (SelectedSymbols[0] is Note note)
             {
-                if(note.Lyrics.Count > 0)
+                if (note.Lyrics.Count > 0)
                 {
                     CurrentLyrics = note.Lyrics[0];
                     SelectionHelper.ColorSelectedElement(noteViewer, CurrentLyrics);
@@ -477,7 +605,7 @@ namespace MusicNotesEditor.ViewModels
 
         public void StopTypingLyrics()
         {
-            if(CurrentLyrics == null) return;
+            if (CurrentLyrics == null) return;
 
             var syllableType = CurrentLyrics.Syllables[0].Type;
 
@@ -504,7 +632,7 @@ namespace MusicNotesEditor.ViewModels
 
         public void AddCharacterToLyrics(string newChar)
         {
-            if(CurrentLyrics == null || CurrentLyrics.Text.Length == App.Settings.MaxCharactersInSyllable) 
+            if (CurrentLyrics == null || CurrentLyrics.Text.Length == App.Settings.MaxCharactersInSyllable)
                 return;
 
             var previousText = CurrentLyrics.Text;
@@ -527,7 +655,7 @@ namespace MusicNotesEditor.ViewModels
         {
             var yPos = (note.ActualRenderedBounds.NW.Y + note.ActualRenderedBounds.SW.Y) / 2;
             int _ = ScoreDataExtractor.GetStaffLineIndex(Data, yPos, out var linePositions);
-            return 5 + ((linePositions.Min() - linePositions.Max()) / 5) * (5 + (App.Settings.AdditionalStaffLines.Value * 2)); 
+            return 5 + ((linePositions.Min() - linePositions.Max()) / 5) * (5 + (App.Settings.AdditionalStaffLines.Value * 2));
         }
 
 
@@ -556,13 +684,13 @@ namespace MusicNotesEditor.ViewModels
                 return;
 
             var syllableType = CurrentLyrics.Syllables[0].Type;
-            
-            if(!changeSyllablesType) {}
+
+            if (!changeSyllablesType) { }
             else if (isNewWord)
             {
-                if(syllableType == SyllableType.Begin)
+                if (syllableType == SyllableType.Begin)
                     CurrentLyrics.Syllables[0].Type = SyllableType.Single;
-                else if(syllableType != SyllableType.Single)
+                else if (syllableType != SyllableType.Single)
                     CurrentLyrics.Syllables[0].Type = SyllableType.End;
             }
             else
@@ -576,7 +704,7 @@ namespace MusicNotesEditor.ViewModels
 
             var currentType = CurrentLyrics.Syllables[0].Type;
             var notes = CurrentLyrics.Note.Measure.Staff.Elements.OfType<Note>();
-    
+
             var nextNote = jumpToPrevious
             ? notes
                 .TakeWhile(n => n != CurrentLyrics.Note)
@@ -588,7 +716,7 @@ namespace MusicNotesEditor.ViewModels
 
             if (nextNote == null)
                 return;
-            
+
             if (CurrentLyrics.Text == LYRICS_PLACEHOLDER || string.IsNullOrWhiteSpace(CurrentLyrics.Text))
             {
                 CurrentLyrics.Note.Lyrics.Clear();
@@ -600,7 +728,7 @@ namespace MusicNotesEditor.ViewModels
 
             var newType = SyllableType.Single;
 
-            if((currentType == SyllableType.Begin || currentType == SyllableType.Middle) && !jumpToPrevious)
+            if ((currentType == SyllableType.Begin || currentType == SyllableType.Middle) && !jumpToPrevious)
                 newType = SyllableType.Middle;
 
             StartTypingLyrics(newType);
@@ -631,5 +759,10 @@ namespace MusicNotesEditor.ViewModels
         }
 
 
+        // Cleanup when view model is disposed
+        ~MusicEditorViewModel()
+        {
+            StopPlayback();
+        }
     }
 }
