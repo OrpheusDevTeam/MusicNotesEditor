@@ -23,25 +23,22 @@ namespace MusicNotesEditor.Services.SubProcess
                     progress?.Report("Starting Python script...");
                     Console.WriteLine("Starting Python script...");
 
-                    // Check cancellation before starting
                     cancellationToken.ThrowIfCancellationRequested();
 
                     string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
 
-                    var processStartInfo = new ProcessStartInfo
-                    {
-                        FileName = pythonExecutable,
-                        Arguments = arguments,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                        WorkingDirectory = Path.GetDirectoryName(pythonScriptPath)
-                    };
-
                     using (var process = new Process())
                     {
-                        process.StartInfo = processStartInfo;
+                        process.StartInfo = new ProcessStartInfo
+                        {
+                            FileName = pythonExecutable,
+                            Arguments = arguments,
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true,
+                            WorkingDirectory = Path.GetDirectoryName(pythonScriptPath)
+                        };
 
                         var outputBuilder = new StringBuilder();
                         var errorBuilder = new StringBuilder();
@@ -50,7 +47,6 @@ namespace MusicNotesEditor.Services.SubProcess
                             if (!string.IsNullOrEmpty(e.Data))
                             {
                                 outputBuilder.AppendLine(e.Data);
-                                // Only show non-JSON messages in UI
                                 if (!e.Data.Trim().StartsWith("[") && !e.Data.Trim().StartsWith("{"))
                                 {
                                     progress?.Report($"Processing: {e.Data}");
@@ -65,28 +61,39 @@ namespace MusicNotesEditor.Services.SubProcess
                         };
 
                         progress?.Report("Executing Python script...");
-                        Console.WriteLine("Executing Python script...");
-
                         process.Start();
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
 
-                        // Wait for exit with cancellation support
-                        bool completed = WaitForExitWithCancellation(process, 30000, cancellationToken);
+                        // Create a task that completes when the process exits
+                        var processExited = Task.Run(() => process.WaitForExit(30000));
 
+                        // Create a task that monitors cancellation
+                        while (!processExited.IsCompleted && !cancellationToken.IsCancellationRequested)
+                        {
+                            Task.Delay(100).Wait();
+                        }
+
+                        // If cancellation was requested, kill the process
                         if (cancellationToken.IsCancellationRequested)
                         {
                             try
                             {
-                                process.Kill();
+                                if (!process.HasExited)
+                                {
+                                    process.Kill();
+                                    progress?.Report("Process terminated due to cancellation");
+                                }
                             }
                             catch { }
-                            throw new OperationCanceledException("Python script execution was cancelled");
+
+                            throw new OperationCanceledException("OMR execution was cancelled");
                         }
 
-                        if (!completed)
+                        // Wait for process to complete
+                        if (!processExited.Result)
                         {
-                            process.Kill();
+                            try { process.Kill(); } catch { }
                             throw new TimeoutException("Python script execution timed out");
                         }
 
@@ -97,7 +104,6 @@ namespace MusicNotesEditor.Services.SubProcess
                         }
 
                         progress?.Report("Python script completed successfully");
-                        Console.WriteLine("Python script completed successfully");
                         return outputBuilder.ToString();
                     }
                 }

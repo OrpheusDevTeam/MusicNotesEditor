@@ -1,11 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <RepositoryUrl>https://github.com/OrpheusDevTeam/MusicNotesEditor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/OrpheusDevTeam/MusicNotesEditor</PackageProjectUrl>
+    <Company>ORPHEUS Development Team</Company>
+    <Product>Orpheus</Product>
+    <Title>Orpheus</Title>
 	<ApplicationIcon>Assets/logo_orpheus.ico</ApplicationIcon>
   </PropertyGroup>
 
