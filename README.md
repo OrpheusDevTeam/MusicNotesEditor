@@ -1,5 +1,10 @@
 # MusicNotesEditor
 
+For export to PDF to work, go into Assets/script and run:
+```
+npm install
+```
+
 ## Folder Structure
 ```
 📁 MusicNotesEditor
