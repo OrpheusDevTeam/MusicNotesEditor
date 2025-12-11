@@ -52,6 +52,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Update="Assets\credits.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
     <Resource Update="Assets\logo_orpheus.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Resource>

@@ -21,9 +21,6 @@ namespace MusicNotesEditor.Views
 {
     public partial class CreditsPage : Page
     {
-
-        private readonly FileArrangerViewModel viewModel = new FileArrangerViewModel();
-
         public CreditsPage()
         {
             InitializeComponent();

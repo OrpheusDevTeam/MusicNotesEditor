@@ -19,13 +19,8 @@ using MusicNotesEditor.ViewModels;
 
 namespace MusicNotesEditor.Views
 {
-    /// <summary>
-    /// Interaction logic for MainMenuPage.xaml
-    /// </summary>
     public partial class MainMenuPage : Page
     {
-
-        private readonly FileArrangerViewModel viewModel = new FileArrangerViewModel();
 
         public MainMenuPage()
         {
