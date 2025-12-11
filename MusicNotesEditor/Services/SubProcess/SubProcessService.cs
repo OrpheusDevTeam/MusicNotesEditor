@@ -4,29 +4,41 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MusicNotesEditor.Services.SubProcess
 {
     public class SubProcessService : ISubProcessService
     {
-        public async Task<string> ProcessFilesWithPythonAsync(string[] orderedFiles, IProgress<string> progress)
-        {
-            string omrExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "omr/omr.exe");
+        public async Task<string> ProcessFilesWithPythonAsync(string[] orderedFiles, IProgress<string> progress, CancellationToken cancellationToken = default)
 
+            return await Task.Run(() =>
+            {
+                string omrExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "omr/omr.exe");
+        public async Task<string> ProcessFilesWithPythonAsync(string[] orderedFiles, IProgress<string> progress)
             if (!File.Exists(omrExePath))
             {
                 throw new FileNotFoundException($"Could not find the OMR executable at: {omrExePath}");
+            }
+            string pythonScriptPath = @"C:\Users\jmosz\Desktop\Studia\ZPI Team Project\OMR\main.py";
+            string pythonExecutable = "python";
+
+            if (!File.Exists(omrExePath))
+            {
+                    // Check cancellation before starting
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string arguments = string.Join(" ", orderedFiles.Select(f => $"\"{f}\""));
             }
 
             return await Task.Run(() =>
             {
                 try
                 {
-                    progress?.Report("Starting OMR engine...");
-                    Console.WriteLine("Starting OMR engine...");
+                    progress?.Report("Starting Python script...");
+                    Console.WriteLine("Starting Python script...");
 
-                    string arguments = string.Join(" ", orderedFiles.Select(f => $"\"{f}\""));
+                    string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
 
                     var processStartInfo = new ProcessStartInfo
                     {
@@ -58,22 +70,34 @@ namespace MusicNotesEditor.Services.SubProcess
                                 }
                                 Console.WriteLine($"Output: {e.Data}");
                             }
-                        };
-
+                        progress?.Report("Executing OMR core...");
                         process.ErrorDataReceived += (sender, e) => {
                             if (!string.IsNullOrEmpty(e.Data))
                             {
                                 errorBuilder.AppendLine(e.Data);
-                                Console.WriteLine($"Debug/Error: {e.Data}");
+                        // Wait for exit with cancellation support
+                        bool completed = WaitForExitWithCancellation(process, 30000, cancellationToken);
+
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                process.Kill();
+                            }
+                            catch { }
+                            throw new OperationCanceledException("Python script execution was cancelled");
+                        }
+                        bool completed = process.WaitForExit(60000); // increased to 60s just in case
                             }
                         };
 
-                        progress?.Report("Executing OMR core...");
+                        progress?.Report("Executing Python script...");
+                        Console.WriteLine("Executing Python script...");
                         process.Start();
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
 
-                        bool completed = process.WaitForExit(60000); // increased to 60s just in case
+                        bool completed = process.WaitForExit(30000);
 
                         if (!completed)
                         {
@@ -91,17 +115,35 @@ namespace MusicNotesEditor.Services.SubProcess
                         return outputBuilder.ToString();
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     progress?.Report($"Error: {ex.Message}");
                     throw new Exception($"Failed to execute OMR: {ex.Message}", ex);
                 }
-            });
+            }, cancellationToken);
         }
 
-
-        public async Task<string> ExecuteJavaScriptScriptAsync(string scriptName, string arguments, IProgress<string> progress)
+        private bool WaitForExitWithCancellation(Process process, int timeoutMilliseconds, CancellationToken cancellationToken)
         {
+            var task = Task.Run(() => process.WaitForExit(timeoutMilliseconds), cancellationToken);
+
+            try
+            {
+                return task.GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+        }
+
+        public async Task<string> ExecuteJavaScriptScriptAsync(string scriptName, string arguments, IProgress<string> progress, CancellationToken cancellationToken = default)
+        {
+            var stopwatch = Stopwatch.StartNew();
             return await Task.Run(() =>
             {
                 try
@@ -120,6 +162,9 @@ namespace MusicNotesEditor.Services.SubProcess
 
                     progress?.Report($"Starting Node.js script: {scriptName}...");
                     Console.WriteLine($"Starting Node.js script: {scriptName}...");
+
+                    // Check cancellation before starting
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     // Prepare the arguments for Node.js
                     string fullArguments = $"\"{scriptPath}\" {arguments}";
@@ -172,7 +217,18 @@ namespace MusicNotesEditor.Services.SubProcess
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
 
-                        bool completed = process.WaitForExit(60000); // 60 seconds timeout
+                        // Wait for exit with cancellation support
+                        bool completed = WaitForExitWithCancellation(process, 60000, cancellationToken);
+
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                process.Kill();
+                            }
+                            catch { }
+                            throw new OperationCanceledException("Node.js script execution was cancelled");
+                        }
 
                         if (!completed)
                         {
@@ -191,16 +247,16 @@ namespace MusicNotesEditor.Services.SubProcess
                         return outputBuilder.ToString();
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
-
                     progress?.Report($"Error: {ex.Message}");
                     throw new Exception($"Failed to execute JavaScript script: {ex.Message}", ex);
                 }
-            });
+            }, cancellationToken);
         }
-
-
-
     }
 }
