@@ -15,30 +15,34 @@ namespace MusicNotesEditor.Services.SubProcess
         {
             return await Task.Run(() =>
             {
-                string pythonScriptPath = @"C:\Users\jmosz\Desktop\Studia\ZPI Team Project\OMR\main.py";
-                string pythonExecutable = "python";
+                string omrExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "omr", "omr.exe");
+
+                if (!File.Exists(omrExePath))
+                    throw new FileNotFoundException($"OMR executable not found at: {omrExePath}");
 
                 try
                 {
-                    progress?.Report("Starting Python script...");
-                    Console.WriteLine("Starting Python script...");
+                    progress?.Report("Starting OMR Module...");
+                    Console.WriteLine("Starting OMR Module...");
 
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
+                    string arguments = string.Join(" ", orderedFiles.Select(f => $"\"{f}\""));
 
                     using (var process = new Process())
                     {
-                        process.StartInfo = new ProcessStartInfo
+                        var processStartInfo = new ProcessStartInfo
                         {
-                            FileName = pythonExecutable,
+                            FileName = omrExePath,
                             Arguments = arguments,
                             UseShellExecute = false,
                             RedirectStandardOutput = true,
                             RedirectStandardError = true,
                             CreateNoWindow = true,
-                            WorkingDirectory = Path.GetDirectoryName(pythonScriptPath)
+                            WorkingDirectory = Path.GetDirectoryName(omrExePath)
                         };
+
+                        process.StartInfo = processStartInfo;
 
                         var outputBuilder = new StringBuilder();
                         var errorBuilder = new StringBuilder();
@@ -60,7 +64,9 @@ namespace MusicNotesEditor.Services.SubProcess
                                 errorBuilder.AppendLine(e.Data);
                         };
 
-                        progress?.Report("Executing Python script...");
+                        progress?.Report("Executing OMR Module...");
+                        Console.WriteLine("Executing OMR Module...");
+
                         process.Start();
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
@@ -94,16 +100,16 @@ namespace MusicNotesEditor.Services.SubProcess
                         if (!processExited.Result)
                         {
                             try { process.Kill(); } catch { }
-                            throw new TimeoutException("Python script execution timed out");
+                            throw new TimeoutException("OMR Module execution timed out");
                         }
 
                         if (process.ExitCode != 0)
                         {
                             string errorMessage = errorBuilder.ToString();
-                            throw new Exception($"Python script failed: {errorMessage}");
+                            throw new Exception($"OMR Module failed: {errorMessage}");
                         }
 
-                        progress?.Report("Python script completed successfully");
+                        progress?.Report("OMR Module completed successfully");
                         return outputBuilder.ToString();
                     }
                 }
@@ -114,7 +120,7 @@ namespace MusicNotesEditor.Services.SubProcess
                 catch (Exception ex)
                 {
                     progress?.Report($"Error: {ex.Message}");
-                    throw new Exception($"Failed to execute Python script: {ex.Message}", ex);
+                    throw new Exception($"Failed to execute OMR Module: {ex.Message}", ex);
                 }
             }, cancellationToken);
         }

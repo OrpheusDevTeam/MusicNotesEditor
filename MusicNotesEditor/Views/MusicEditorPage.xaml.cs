@@ -41,7 +41,7 @@ namespace MusicNotesEditor.Views
         List<TextBlock> staffLineIndicators;
         Stopwatch stopwatch = new Stopwatch();
 
-        public MusicEditorPage(string filepath = "")
+        public MusicEditorPage(string filepath = "", int numberOfParts = -1)
         {
             stopwatch.Start();
             try
@@ -62,7 +62,7 @@ namespace MusicNotesEditor.Views
                 }
                 else
                 {
-                    viewModel.LoadData(filepath);
+                    viewModel.LoadData(filepath, numberOfParts);
                 }
 
                 CompositionTarget.Rendering += InitializeDataOnFirstRender;
