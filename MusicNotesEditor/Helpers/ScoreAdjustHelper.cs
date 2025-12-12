@@ -118,7 +118,7 @@ namespace MusicNotesEditor.Helpers
         private const double BASE_MEASURE_WIDTH = 60;
 
         private const double REST_WIDTH = 20;
-        private const double NOTE_WIDTH = 20;
+        private const double NOTE_WIDTH = 30;
         private const double CLEF_WIDTH = 20;
         private const double TIME_SIGNATURE_WIDTH = 24;
         private const double ACCIDENTAL_WIDTH = 15;
@@ -153,10 +153,7 @@ namespace MusicNotesEditor.Helpers
 
                     case Note note:
                         currentMeasureWidth += NOTE_WIDTH;
-                        if (note.Duration != RhythmicDuration.Whole && note.Duration != RhythmicDuration.Half)
-                        {
-                            currentMeasureWidth += 6; // Slightly wider for longer notes
-                        }
+                        
                         if(note.Alter != 0)
                         {
                             currentMeasureWidth += ACCIDENTAL_WIDTH;

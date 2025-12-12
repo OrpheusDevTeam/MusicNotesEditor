@@ -6,6 +6,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <RepositoryUrl>https://github.com/OrpheusDevTeam/MusicNotesEditor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/OrpheusDevTeam/MusicNotesEditor</PackageProjectUrl>
+    <Company>ORPHEUS Development Team</Company>
+    <Product>Orpheus</Product>
+    <Title>Orpheus</Title>
 	<ApplicationIcon>Assets/logo_orpheus.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -15,6 +21,9 @@
 	  </Reference>
 	  <Reference Include="Manufaktura.Music">
 		  <HintPath>Libs\Manufaktura.Music.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Manufaktura.Core">
+		  <HintPath>Libs\Manufaktura.Core.dll</HintPath>
 	  </Reference>
     <PackageReference Include="Manufaktura.Controls.Desktop" Version="1.0.0" />
     <PackageReference Include="Manufaktura.Controls.WPF" Version="1.4.0" />

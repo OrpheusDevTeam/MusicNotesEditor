@@ -15,32 +15,33 @@ namespace MusicNotesEditor.Services.SubProcess
         {
             return await Task.Run(() =>
             {
-                string pythonScriptPath = @"C:\Users\jmosz\Desktop\Studia\ZPI Team Project\OMR\main.py";
-                string pythonExecutable = "python";
+                string omrExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "omr", "omr.exe");
+
+                if (!File.Exists(omrExePath))
+                    throw new FileNotFoundException($"OMR executable not found at: {omrExePath}");
 
                 try
                 {
-                    progress?.Report("Starting Python script...");
-                    Console.WriteLine("Starting Python script...");
+                    progress?.Report("Starting OMR Module...");
+                    Console.WriteLine("Starting OMR Module...");
 
-                    // Check cancellation before starting
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    string arguments = $"\"{pythonScriptPath}\" {string.Join(" ", orderedFiles.Select(f => $"\"{f}\""))}";
-
-                    var processStartInfo = new ProcessStartInfo
-                    {
-                        FileName = pythonExecutable,
-                        Arguments = arguments,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                        WorkingDirectory = Path.GetDirectoryName(pythonScriptPath)
-                    };
+                    string arguments = string.Join(" ", orderedFiles.Select(f => $"\"{f}\""));
 
                     using (var process = new Process())
                     {
+                        var processStartInfo = new ProcessStartInfo
+                        {
+                            FileName = omrExePath,
+                            Arguments = arguments,
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true,
+                            WorkingDirectory = Path.GetDirectoryName(omrExePath)
+                        };
+
                         process.StartInfo = processStartInfo;
 
                         var outputBuilder = new StringBuilder();
@@ -50,7 +51,6 @@ namespace MusicNotesEditor.Services.SubProcess
                             if (!string.IsNullOrEmpty(e.Data))
                             {
                                 outputBuilder.AppendLine(e.Data);
-                                // Only show non-JSON messages in UI
                                 if (!e.Data.Trim().StartsWith("[") && !e.Data.Trim().StartsWith("{"))
                                 {
                                     progress?.Report($"Processing: {e.Data}");
@@ -64,40 +64,52 @@ namespace MusicNotesEditor.Services.SubProcess
                                 errorBuilder.AppendLine(e.Data);
                         };
 
-                        progress?.Report("Executing Python script...");
-                        Console.WriteLine("Executing Python script...");
+                        progress?.Report("Executing OMR Module...");
+                        Console.WriteLine("Executing OMR Module...");
 
                         process.Start();
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
 
-                        // Wait for exit with cancellation support
-                        bool completed = WaitForExitWithCancellation(process, 30000, cancellationToken);
+                        // Create a task that completes when the process exits
+                        var processExited = Task.Run(() => process.WaitForExit(30000));
 
+                        // Create a task that monitors cancellation
+                        while (!processExited.IsCompleted && !cancellationToken.IsCancellationRequested)
+                        {
+                            Task.Delay(100).Wait();
+                        }
+
+                        // If cancellation was requested, kill the process
                         if (cancellationToken.IsCancellationRequested)
                         {
                             try
                             {
-                                process.Kill();
+                                if (!process.HasExited)
+                                {
+                                    process.Kill();
+                                    progress?.Report("Process terminated due to cancellation");
+                                }
                             }
                             catch { }
-                            throw new OperationCanceledException("Python script execution was cancelled");
+
+                            throw new OperationCanceledException("OMR execution was cancelled");
                         }
 
-                        if (!completed)
+                        // Wait for process to complete
+                        if (!processExited.Result)
                         {
-                            process.Kill();
-                            throw new TimeoutException("Python script execution timed out");
+                            try { process.Kill(); } catch { }
+                            throw new TimeoutException("OMR Module execution timed out");
                         }
 
                         if (process.ExitCode != 0)
                         {
                             string errorMessage = errorBuilder.ToString();
-                            throw new Exception($"Python script failed: {errorMessage}");
+                            throw new Exception($"OMR Module failed: {errorMessage}");
                         }
 
-                        progress?.Report("Python script completed successfully");
-                        Console.WriteLine("Python script completed successfully");
+                        progress?.Report("OMR Module completed successfully");
                         return outputBuilder.ToString();
                     }
                 }
@@ -108,7 +120,7 @@ namespace MusicNotesEditor.Services.SubProcess
                 catch (Exception ex)
                 {
                     progress?.Report($"Error: {ex.Message}");
-                    throw new Exception($"Failed to execute Python script: {ex.Message}", ex);
+                    throw new Exception($"Failed to execute OMR Module: {ex.Message}", ex);
                 }
             }, cancellationToken);
         }
