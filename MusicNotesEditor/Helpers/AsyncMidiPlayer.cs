@@ -197,6 +197,8 @@ public class AsyncMidiPlayer : IDisposable
                 lastEventTime = ev.AbsoluteTime;
                 eventIndex++;
             }
+            await Task.Delay(500, cancellationToken);
+
         }
         finally
         {
