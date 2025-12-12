@@ -612,7 +612,7 @@ namespace MusicNotesEditor.Views
                     UpdateLoadingProgress("Success! Redirecting...");
                     await Task.Delay(500); // Brief delay for user to see success message
 
-                    NavigationService.Navigate(new MusicEditorPage(filePath));
+                    NavigationService.Navigate(new MusicEditorPage(filePath, viewModel.NumberOfParts));
                 }
                 else
                 {

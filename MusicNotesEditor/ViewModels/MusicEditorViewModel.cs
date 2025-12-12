@@ -220,10 +220,14 @@ namespace MusicNotesEditor.ViewModels
         }
 
 
-        public void LoadData(string filepath)
+        public void LoadData(string filepath, int numberOfParts = -1)
         {
             var parser = new MusicXmlParser();
             var score = parser.Parse(XDocument.Load(filepath));
+            if(numberOfParts > 0 && numberOfParts < 7)
+            {
+                score = ScoreProcessingHelper.ProcessScoreFromOMR(score, numberOfParts);
+            }
 
             score.DefaultPageSettings.DefaultStaffDistance = App.Settings.StaffDistance;
             score.DefaultPageSettings.DefaultSystemDistance = App.Settings.AdditionalStaffLines;
@@ -235,6 +239,10 @@ namespace MusicNotesEditor.ViewModels
                 if(staff.Elements.Last() is Barline barline)
                 {
                     barline.Style = BarlineStyle.LightHeavy;
+                }
+                else
+                {
+                    staff.Elements.Add(new Barline(BarlineStyle.LightHeavy));
                 }
                 for (int i = staff.Elements.Count - 1; i >= 0; i--)
                 {

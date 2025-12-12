@@ -41,7 +41,7 @@ namespace MusicNotesEditor.Views
         List<TextBlock> staffLineIndicators;
         Stopwatch stopwatch = new Stopwatch();
 
-        public MusicEditorPage(string filepath = "")
+        public MusicEditorPage(string filepath = "", int numberOfParts = -1)
         {
             stopwatch.Start();
             try
@@ -62,7 +62,7 @@ namespace MusicNotesEditor.Views
                 }
                 else
                 {
-                    viewModel.LoadData(filepath);
+                    viewModel.LoadData(filepath, numberOfParts);
                 }
 
                 CompositionTarget.Rendering += InitializeDataOnFirstRender;
@@ -252,10 +252,10 @@ namespace MusicNotesEditor.Views
                     Content = new TextBlock
                     {
                         Inlines =
-                {
-                    new Run(accidental.AccidentalName) { FontWeight = FontWeights.Bold },
-                    new Run($"\n{accidental.Description}"),
-                }
+                        {
+                            new Run(accidental.AccidentalName) { FontWeight = FontWeights.Bold },
+                            new Run($"\n{accidental.Description}"),
+                        }
                     }
                 };
 
@@ -288,6 +288,8 @@ namespace MusicNotesEditor.Views
 
             viewModel.NoteViewerContentWidth = NoteViewerContentWidth();
             viewModel.NoteViewerContentHeight = NoteViewerContentHeight();
+            ScoreAdjustHelper.AdjustWidth(viewModel.Data, viewModel.NoteViewerContentWidth,viewModel.NoteViewerContentHeight, 1 );
+            viewModel.AdjustHeight();
         }
 
 
@@ -771,6 +773,7 @@ namespace MusicNotesEditor.Views
 
         private void BackToMenu(object sender, RoutedEventArgs e)
         {
+            viewModel.StopPlayback();
             NavigationService.Navigate(new MainMenuPage());
         }
     }
